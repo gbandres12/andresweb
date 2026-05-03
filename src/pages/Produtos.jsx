@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import ProductForm from '@/components/ProductForm';
+import CategoryManager from '@/components/CategoryManager';
 import { cn } from '@/lib/utils';
 
 const CATEGORIES = ["Vestidos", "Blusas", "Calças", "Saias", "Shorts", "Casacos", "Acessórios", "Moda Praia", "Lingerie", "Outros"];
@@ -66,6 +68,17 @@ export default function Produtos() {
         </Button>
       </div>
 
+      <Tabs defaultValue="produtos">
+        <TabsList className="mb-6">
+          <TabsTrigger value="produtos">Produtos</TabsTrigger>
+          <TabsTrigger value="categorias">Categorias</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="categorias">
+          <CategoryManager />
+        </TabsContent>
+
+        <TabsContent value="produtos">
       {/* Filters */}
       <div className="flex gap-3 mb-6 flex-wrap">
         <div className="relative flex-1 min-w-48">
@@ -158,6 +171,9 @@ export default function Produtos() {
           <div className="text-center text-muted-foreground py-12">Nenhum produto encontrado</div>
         )}
       </div>
+
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={showForm} onOpenChange={v => { if (!v) closeForm(); }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
