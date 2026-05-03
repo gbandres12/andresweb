@@ -13,6 +13,7 @@ import Estoque from '@/pages/Estoque';
 import Vendas from '@/pages/Vendas';
 import Clientes from '@/pages/Clientes';
 import Catalogo from '@/pages/Catalogo';
+import EntradaEstoque from '@/pages/EntradaEstoque';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -54,6 +55,7 @@ const AuthenticatedApp = () => {
         <Route path="/pdv" element={<PDV />} />
         <Route path="/produtos" element={<Produtos />} />
         <Route path="/estoque" element={<Estoque />} />
+        <Route path="/estoque/entrada" element={<EntradaEstoque />} />
         <Route path="/vendas" element={<Vendas />} />
         <Route path="/clientes" element={<Clientes />} />
       </Route>

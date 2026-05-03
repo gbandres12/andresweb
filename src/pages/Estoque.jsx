@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { ArrowDown, ArrowUp, AlertTriangle, RefreshCw } from 'lucide-react';
+import { AlertTriangle, RefreshCw, PackagePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { Link } from 'react-router-dom';
+import ProductDetailModal from '@/components/ProductDetailModal';
 
 export default function Estoque() {
   const [products, setProducts] = useState([]);
@@ -14,6 +16,7 @@ export default function Estoque() {
   const [showAdjust, setShowAdjust] = useState(false);
   const [adjustData, setAdjustData] = useState({ product: null, variant: null, type: 'entrada', qty: 1, reason: '' });
   const [filterStatus, setFilterStatus] = useState('all');
+  const [detailProduct, setDetailProduct] = useState(null);
 
   const load = () => base44.entities.Product.list().then(p => { setProducts(p); setLoading(false); });
   useEffect(() => { load(); }, []);
@@ -81,6 +84,11 @@ export default function Estoque() {
           <h1 className="text-3xl font-serif font-semibold">Controle de Estoque</h1>
           <p className="text-muted-foreground text-sm mt-0.5">{allVariants.length} variantes cadastradas</p>
         </div>
+        <Link to="/estoque/entrada">
+          <Button>
+            <PackagePlus className="w-4 h-4 mr-1" /> Entrada de Estoque
+          </Button>
+        </Link>
       </div>
 
       {/* Alerts */}
@@ -139,11 +147,19 @@ export default function Estoque() {
               <tr key={i} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                 <td className="px-5 py-3">
                   <div className="flex items-center gap-3">
-                    {v.productImage ? (
-                      <img src={v.productImage} alt="" className="w-8 h-8 rounded-lg object-cover" />
-                    ) : (
-                      <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-sm">👗</div>
-                    )}
+                    <button
+                      onClick={() => {
+                        const prod = products.find(p => p.id === v.productId);
+                        if (prod) setDetailProduct(prod);
+                      }}
+                      className="shrink-0"
+                    >
+                      {v.productImage ? (
+                        <img src={v.productImage} alt="" className="w-8 h-8 rounded-lg object-cover hover:ring-2 hover:ring-primary transition-all" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-sm">👗</div>
+                      )}
+                    </button>
                     <span className="font-medium text-sm">{v.productName}</span>
                   </div>
                 </td>
@@ -175,6 +191,11 @@ export default function Estoque() {
           <div className="text-center text-muted-foreground py-12">Nenhuma variante encontrada</div>
         )}
       </div>
+
+      {/* Product detail modal */}
+      {detailProduct && (
+        <ProductDetailModal product={detailProduct} onClose={() => setDetailProduct(null)} />
+      )}
 
       {/* Adjust dialog */}
       <Dialog open={showAdjust} onOpenChange={setShowAdjust}>
