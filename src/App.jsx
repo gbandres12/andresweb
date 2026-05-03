@@ -17,6 +17,15 @@ import Catalogo from '@/pages/Catalogo';
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
 
+  // Catálogo é sempre público — sem autenticação
+  if (window.location.pathname === '/catalogo') {
+    return (
+      <Routes>
+        <Route path="/catalogo" element={<Catalogo />} />
+      </Routes>
+    );
+  }
+
   if (isLoadingPublicSettings || isLoadingAuth) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-background">
