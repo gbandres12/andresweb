@@ -2,7 +2,7 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { 
   LayoutDashboard, ShoppingCart, Package, BarChart3, 
-  Users, Menu, X, Store, ChevronRight, LogOut
+  Users, Menu, X, Store, ChevronRight, LogOut, Wallet
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,7 @@ const navItems = [
   { path: '/estoque', label: 'Estoque', icon: BarChart3 },
   { path: '/clientes', label: 'Clientes', icon: Users },
   { path: '/vendas', label: 'Vendas', icon: Store },
+  { path: '/financeiro', label: 'Financeiro', icon: Wallet },
 ];
 
 export default function Layout() {
