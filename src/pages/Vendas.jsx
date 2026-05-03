@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import Despesas from '@/pages/Despesas';
+import PrintReceiptButton from '@/components/SaleReceipt';
 
 export default function Vendas() {
   const [sales, setSales] = useState([]);
@@ -189,6 +190,10 @@ export default function Vendas() {
               </div>
 
               {selected.notes && <p className="text-sm text-muted-foreground">Obs: {selected.notes}</p>}
+
+              <div className="pt-2 border-t border-border">
+                <PrintReceiptButton sale={selected} />
+              </div>
             </div>
           )}
         </DialogContent>
