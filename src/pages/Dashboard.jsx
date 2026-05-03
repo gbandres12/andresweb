@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
-import { TrendingUp, ShoppingBag, Package, Users, ArrowRight, AlertTriangle } from 'lucide-react';
+import { TrendingUp, ShoppingBag, Package, Users, ArrowRight, AlertTriangle, Star, Clock } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, startOfDay, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -34,6 +34,20 @@ export default function Dashboard() {
     return s.status === 'concluida' && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   });
   const monthRevenue = monthSales.reduce((sum, s) => sum + (s.total || 0), 0);
+
+  // Top selling products (today)
+  const topProducts = (() => {
+    const map = {};
+    todaySales.forEach(sale => {
+      (sale.items || []).forEach(item => {
+        const key = item.product_id;
+        if (!map[key]) map[key] = { name: item.product_name, qty: 0, revenue: 0 };
+        map[key].qty += item.quantity || 1;
+        map[key].revenue += item.total || 0;
+      });
+    });
+    return Object.values(map).sort((a, b) => b.qty - a.qty).slice(0, 5);
+  })();
 
   // Low stock products
   const lowStock = products.filter(p => 
@@ -123,6 +137,96 @@ export default function Dashboard() {
           )}
           <Link to="/estoque" className="flex items-center gap-1 text-xs text-primary font-medium hover:underline">
             Ver estoque completo <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
+      </div>
+
+      {/* Today's performance panel */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Today's sales list */}
+        <div className="bg-card rounded-2xl border border-border p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-serif text-lg font-semibold flex items-center gap-2">
+              <Clock className="w-4 h-4 text-primary" /> Vendas de Hoje
+            </h2>
+            <span className="text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+              {todaySales.length} venda{todaySales.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+          {todaySales.length === 0 ? (
+            <p className="text-muted-foreground text-sm py-6 text-center">Nenhuma venda registrada hoje.</p>
+          ) : (
+            <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+              {todaySales.slice(0, 8).map(sale => (
+                <div key={sale.id} className="flex items-center justify-between py-2 border-b border-border last:border-0 text-sm">
+                  <div className="flex flex-col">
+                    <span className="font-medium text-foreground">
+                      {sale.customer_name || 'Cliente avulso'}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {format(new Date(sale.created_date), 'HH:mm')} · {sale.payment_method}
+                    </span>
+                  </div>
+                  <span className="font-serif font-semibold text-primary">
+                    R$ {sale.total?.toFixed(2).replace('.', ',')}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">Faturamento do dia</span>
+            <span className="font-serif text-lg font-semibold text-primary">
+              R$ {todayRevenue.toFixed(2).replace('.', ',')}
+            </span>
+          </div>
+        </div>
+
+        {/* Top selling products today */}
+        <div className="bg-card rounded-2xl border border-border p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-serif text-lg font-semibold flex items-center gap-2">
+              <Star className="w-4 h-4 text-primary" /> Peças Mais Vendidas Hoje
+            </h2>
+          </div>
+          {topProducts.length === 0 ? (
+            <p className="text-muted-foreground text-sm py-6 text-center">Nenhuma venda registrada hoje.</p>
+          ) : (
+            <div className="space-y-3">
+              {topProducts.map((item, i) => (
+                <div key={item.name} className="flex items-center gap-3">
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                    i === 0 ? 'bg-amber-100 text-amber-600' :
+                    i === 1 ? 'bg-slate-100 text-slate-500' :
+                    i === 2 ? 'bg-orange-50 text-orange-500' :
+                    'bg-muted text-muted-foreground'
+                  }`}>
+                    {i + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{item.name}</p>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <div
+                        className="h-1.5 rounded-full bg-primary/20"
+                        style={{ width: '100%' }}
+                      >
+                        <div
+                          className="h-1.5 rounded-full bg-primary transition-all"
+                          style={{ width: `${Math.round((item.qty / topProducts[0].qty) * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-semibold text-foreground">{item.qty} un</p>
+                    <p className="text-xs text-muted-foreground">R$ {item.revenue.toFixed(2).replace('.', ',')}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <Link to="/vendas" className="flex items-center gap-1 text-xs text-primary font-medium hover:underline mt-4">
+            Ver histórico completo <ArrowRight className="w-3 h-3" />
           </Link>
         </div>
       </div>
