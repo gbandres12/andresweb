@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Search, X, Phone, Instagram, ChevronDown } from 'lucide-react';
+import { Search, X, Phone, Instagram } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -13,6 +13,31 @@ export default function Catalogo() {
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const searchInputRef = useRef(null);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 60);
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
+    if (searchOpen) setTimeout(() => searchInputRef.current?.focus(), 50);
+  }, [searchOpen]);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); setSearchOpen(true); }
+      if (e.key === 'Escape') closeSearch();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const openSearch = () => setSearchOpen(true);
+  const closeSearch = () => { setSearchOpen(false); setSearch(''); };
 
   useEffect(() => {
     base44.entities.Product.filter({ is_active: true }).then(p => {
@@ -57,9 +82,104 @@ export default function Catalogo() {
   return (
     <div className="min-h-screen bg-[#faf9f7] font-sans">
 
-      {/* ── HERO ── */}
-      <header className="relative bg-[#faf9f7] border-b border-[#e8e0d8]">
-        {/* Top bar */}
+      {/* ── STICKY NAV BAR ── */}
+      <div className={cn(
+        "sticky top-0 z-40 bg-[#faf9f7]/95 backdrop-blur-sm border-b border-[#e8e0d8] transition-shadow duration-300",
+        scrolled ? "shadow-sm" : ""
+      )}>
+        <div className="max-w-6xl mx-auto px-6 flex items-center justify-between h-14 gap-4">
+          {/* Logo compact */}
+          <span className="font-serif text-xl font-light tracking-[0.2em] shrink-0">BELLA</span>
+
+          {/* Category pills — hidden when search is open */}
+          <nav className={cn(
+            "hidden md:flex items-center gap-0 overflow-x-auto flex-1 justify-center transition-all",
+            searchOpen ? "opacity-0 pointer-events-none" : "opacity-100"
+          )}>
+            {CATEGORIES.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setCategory(cat)}
+                className={cn(
+                  "px-4 py-1 text-xs tracking-widest uppercase transition-all font-sans whitespace-nowrap",
+                  category === cat
+                    ? "text-foreground border-b-2 border-primary"
+                    : "text-muted-foreground hover:text-foreground border-b-2 border-transparent"
+                )}
+              >
+                {cat}
+              </button>
+            ))}
+          </nav>
+
+          {/* Search bar — expands inline */}
+          <div className="flex items-center gap-3">
+            <AnimatePresence>
+              {searchOpen && (
+                <motion.div
+                  key="searchbar"
+                  initial={{ width: 0, opacity: 0 }}
+                  animate={{ width: '100%', opacity: 1 }}
+                  exit={{ width: 0, opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="absolute inset-x-0 top-0 h-14 bg-[#faf9f7] flex items-center px-6 gap-3 z-10"
+                >
+                  <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Buscar por nome, categoria, tag..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground text-foreground"
+                  />
+                  {search && (
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      {products.filter(p => {
+                        const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.tags?.some(t => t.toLowerCase().includes(search.toLowerCase()));
+                        const matchCat = category === 'Todos' || p.category === category;
+                        return p.is_active && matchSearch && matchCat;
+                      }).length} resultado(s)
+                    </span>
+                  )}
+                  <button onClick={closeSearch} className="text-muted-foreground hover:text-foreground shrink-0">
+                    <X className="w-4 h-4" />
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            <button
+              onClick={openSearch}
+              className="p-2 hover:bg-[#ede8e2] rounded-full transition-colors"
+              title="Buscar"
+            >
+              <Search className="w-4 h-4 text-foreground" />
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile category scroll */}
+        <div className="md:hidden flex gap-0 overflow-x-auto px-4 pb-2 border-t border-[#e8e0d8]/60">
+          {CATEGORIES.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setCategory(cat)}
+              className={cn(
+                "px-3 py-1.5 text-xs tracking-widest uppercase transition-all font-sans whitespace-nowrap shrink-0",
+                category === cat
+                  ? "text-foreground border-b-2 border-primary"
+                  : "text-muted-foreground border-b-2 border-transparent"
+              )}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── HERO BRAND ── */}
+      <header className="bg-[#faf9f7] border-b border-[#e8e0d8]">
+        {/* Top info bar */}
         <div className="border-b border-[#e8e0d8] py-2 px-6 flex items-center justify-between text-xs tracking-widest uppercase text-muted-foreground">
           <span>Frete grátis acima de R$ 299</span>
           <div className="flex gap-5">
@@ -75,48 +195,22 @@ export default function Catalogo() {
         {/* Brand */}
         <div className="py-10 flex flex-col items-center text-center px-6">
           <p className="text-xs tracking-[0.3em] uppercase text-muted-foreground mb-3">Moda Feminina</p>
-          <h1
-            className="font-serif text-5xl md:text-7xl font-light text-foreground tracking-widest"
-            style={{ letterSpacing: '0.15em' }}
-          >
+          <h1 className="font-serif text-5xl md:text-7xl font-light text-foreground" style={{ letterSpacing: '0.15em' }}>
             BELLA
           </h1>
           <div className="w-16 h-px bg-primary/40 my-4" />
           <p className="font-serif text-sm italic text-muted-foreground">elegância para cada momento</p>
+          {/* Inline search hint */}
+          <button
+            onClick={openSearch}
+            className="mt-6 flex items-center gap-3 border border-[#d4c9bf] px-6 py-2.5 text-xs tracking-widest uppercase text-muted-foreground hover:border-primary hover:text-foreground transition-all group"
+          >
+            <Search className="w-3.5 h-3.5 group-hover:text-primary transition-colors" />
+            Buscar peças, categorias...
+            <span className="ml-2 text-[10px] bg-[#ede8e2] px-1.5 py-0.5 rounded">⌘ K</span>
+          </button>
         </div>
-
-        {/* Category nav */}
-        <nav className="flex items-center justify-center gap-1 flex-wrap px-6 pb-6 overflow-x-auto">
-          {CATEGORIES.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setCategory(cat)}
-              className={cn(
-                "px-5 py-2 text-xs tracking-widest uppercase transition-all font-sans whitespace-nowrap",
-                category === cat
-                  ? "text-foreground border-b-2 border-primary"
-                  : "text-muted-foreground hover:text-foreground border-b-2 border-transparent"
-              )}
-            >
-              {cat}
-            </button>
-          ))}
-        </nav>
       </header>
-
-      {/* ── SEARCH ── */}
-      <div className="max-w-sm mx-auto px-6 py-8">
-        <div className="relative">
-          <Search className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Buscar peças..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-6 pr-4 py-2 border-0 border-b border-[#d4c9bf] bg-transparent text-sm outline-none focus:border-primary transition-colors placeholder:text-muted-foreground"
-          />
-        </div>
-      </div>
 
       {/* ── FEATURED STRIP ── */}
       {featured.length > 0 && !search && category === 'Todos' && (
