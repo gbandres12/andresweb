@@ -15,6 +15,7 @@ import Clientes from '@/pages/Clientes';
 import Catalogo from '@/pages/Catalogo';
 import EntradaEstoque from '@/pages/EntradaEstoque';
 import Financeiro from '@/pages/Financeiro';
+import Calculadora from '@/pages/Calculadora';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -60,6 +61,7 @@ const AuthenticatedApp = () => {
         <Route path="/vendas" element={<Vendas />} />
         <Route path="/clientes" element={<Clientes />} />
         <Route path="/financeiro" element={<Financeiro />} />
+        <Route path="/calculadora" element={<Calculadora />} />
       </Route>
 
       <Route path="*" element={<PageNotFound />} />
