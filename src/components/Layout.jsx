@@ -39,10 +39,10 @@ export default function Layout() {
         <div className="px-6 py-8 border-b border-border">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground text-xs font-serif font-semibold">B</span>
+              <span className="text-primary-foreground text-xs font-serif font-semibold">S</span>
             </div>
             <div>
-              <h1 className="font-serif text-xl font-semibold text-foreground tracking-wide">Bella Store</h1>
+              <h1 className="font-serif text-xl font-semibold text-foreground tracking-wide">Sra Andres</h1>
               <p className="text-xs text-muted-foreground font-sans">Gestão & Catálogo</p>
             </div>
           </div>
@@ -99,7 +99,7 @@ export default function Layout() {
           <button onClick={() => setSidebarOpen(true)} className="p-1.5 rounded-lg hover:bg-muted">
             <Menu className="w-5 h-5" />
           </button>
-          <h1 className="font-serif text-lg font-semibold">Bella Store</h1>
+          <h1 className="font-serif text-lg font-semibold">Sra Andres</h1>
         </header>
 
         {/* Page content */}

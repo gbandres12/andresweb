@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Search, X, Phone, Instagram } from 'lucide-react';
+import { Search, X, Phone, Instagram, ShoppingBag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import CartDrawer from '@/components/CartDrawer';
 
 const CATEGORIES = ["Todos", "Vestidos", "Blusas", "Calças", "Saias", "Shorts", "Casacos", "Acessórios", "Moda Praia", "Lingerie", "Outros"];
 
@@ -15,6 +16,10 @@ export default function Catalogo() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [cart, setCart] = useState([]);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [pickedSize, setPickedSize] = useState(null);
+  const [pickedColor, setPickedColor] = useState(null);
   const searchInputRef = useRef(null);
 
   useEffect(() => {
@@ -49,6 +54,8 @@ export default function Catalogo() {
   useEffect(() => {
     if (selected) {
       setSelectedImage(0);
+      setPickedSize(getAvailableSizes(selected)[0]?.size || null);
+      setPickedColor(getAvailableColors(selected)[0]?.color || null);
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -74,8 +81,31 @@ export default function Catalogo() {
   const getAvailableColors = (product) =>
     [...new Map(product.variants?.filter(v => v.stock > 0).map(v => [v.color, v])).values()];
 
+  const addToCart = (product, size, color) => {
+    const variant = product.variants?.find(v => v.size === size && v.color === color) || product.variants?.[0];
+    setCart(prev => {
+      const existing = prev.findIndex(i => i.productId === product.id && i.size === size && i.color === color);
+      if (existing >= 0) {
+        const updated = [...prev];
+        updated[existing] = { ...updated[existing], qty: updated[existing].qty + 1 };
+        return updated;
+      }
+      return [...prev, {
+        productId: product.id,
+        name: product.name,
+        price: product.price,
+        size,
+        color,
+        image: product.images?.[0],
+        qty: 1,
+      }];
+    });
+    setSelected(null);
+    setCartOpen(true);
+  };
+
   const handleWhatsApp = (product) => {
-    const msg = encodeURIComponent(`Olá! Vi o catálogo da Bella Store e tenho interesse:\n\n*${product.name}*\nR$ ${product.price?.toFixed(2)}\n\nPoderia me ajudar?`);
+    const msg = encodeURIComponent(`Olá! Vi o catálogo da Sra Andres e tenho interesse:\n\n*${product.name}*\nR$ ${product.price?.toFixed(2)}\n\nPoderia me ajudar?`);
     window.open(`https://wa.me/55?text=${msg}`, '_blank');
   };
 
@@ -89,7 +119,7 @@ export default function Catalogo() {
       )}>
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between h-14 gap-4">
           {/* Logo compact */}
-          <span className="font-serif text-xl font-light tracking-[0.2em] shrink-0">BELLA</span>
+          <span className="font-serif text-xl font-light tracking-[0.2em] shrink-0">SRA ANDRES</span>
 
           {/* Category pills — hidden when search is open */}
           <nav className={cn(
@@ -111,6 +141,20 @@ export default function Catalogo() {
               </button>
             ))}
           </nav>
+
+          {/* Cart button */}
+          <button
+            onClick={() => setCartOpen(true)}
+            className="relative p-2 hover:bg-[#ede8e2] rounded-full transition-colors"
+            title="Meu pedido"
+          >
+            <ShoppingBag className="w-4 h-4 text-foreground" />
+            {cart.length > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-primary text-primary-foreground text-[10px] rounded-full flex items-center justify-center font-bold">
+                {cart.length}
+              </span>
+            )}
+          </button>
 
           {/* Search bar — expands inline */}
           <div className="flex items-center gap-3">
@@ -194,12 +238,12 @@ export default function Catalogo() {
 
         {/* Brand */}
         <div className="py-10 flex flex-col items-center text-center px-6">
-          <p className="text-xs tracking-[0.3em] uppercase text-muted-foreground mb-3">Moda Feminina</p>
-          <h1 className="font-serif text-5xl md:text-7xl font-light text-foreground" style={{ letterSpacing: '0.15em' }}>
-            BELLA
-          </h1>
+        <p className="text-xs tracking-[0.3em] uppercase text-muted-foreground mb-3">Moda Feminina</p>
+        <h1 className="font-serif text-5xl md:text-7xl font-light text-foreground" style={{ letterSpacing: '0.15em' }}>
+          SRA ANDRES
+        </h1>
           <div className="w-16 h-px bg-primary/40 my-4" />
-          <p className="font-serif text-sm italic text-muted-foreground">elegância para cada momento</p>
+          <p className="font-serif text-sm italic text-muted-foreground">moda feminina com estilo</p>
           {/* Inline search hint */}
           <button
             onClick={openSearch}
@@ -259,9 +303,9 @@ export default function Catalogo() {
       <footer className="border-t border-[#e8e0d8] bg-[#f5f1ed] py-12 px-6">
         <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-8 text-center md:text-left">
           <div>
-            <h3 className="font-serif text-2xl font-light tracking-widest mb-3">BELLA</h3>
+            <h3 className="font-serif text-2xl font-light tracking-widest mb-3">SRA ANDRES</h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Moda feminina com elegância e sofisticação para cada momento da sua vida.
+              Moda feminina com estilo e personalidade para cada momento da sua vida.
             </p>
           </div>
           <div>
@@ -271,7 +315,7 @@ export default function Catalogo() {
                 <Phone className="w-3.5 h-3.5" /> WhatsApp
               </a>
               <a href="#" className="flex items-center gap-2 hover:text-foreground transition-colors justify-center md:justify-start">
-                <Instagram className="w-3.5 h-3.5" /> @bellastore
+                <Instagram className="w-3.5 h-3.5" /> @sraandres
               </a>
             </div>
           </div>
@@ -288,6 +332,18 @@ export default function Catalogo() {
           © {new Date().getFullYear()} Bella Store · Todos os direitos reservados
         </div>
       </footer>
+
+      {/* ── CART DRAWER ── */}
+      <AnimatePresence>
+        {cartOpen && (
+          <CartDrawer
+            cart={cart}
+            onRemove={(i) => setCart(prev => prev.filter((_, idx) => idx !== i))}
+            onClose={() => setCartOpen(false)}
+            storePhone="55"
+          />
+        )}
+      </AnimatePresence>
 
       {/* ── PRODUCT MODAL ── */}
       <AnimatePresence>
@@ -369,12 +425,19 @@ export default function Catalogo() {
                   {/* Sizes */}
                   {getAvailableSizes(selected).length > 0 && (
                     <div className="mb-4">
-                      <p className="text-xs tracking-widest uppercase text-muted-foreground mb-2">Tamanhos disponíveis</p>
+                      <p className="text-xs tracking-widest uppercase text-muted-foreground mb-2">Tamanho</p>
                       <div className="flex gap-2 flex-wrap">
                         {getAvailableSizes(selected).map(v => (
-                          <span key={v.size} className="w-10 h-10 border border-[#d4c9bf] flex items-center justify-center text-sm hover:border-primary cursor-default transition-colors">
+                          <button
+                            key={v.size}
+                            onClick={() => setPickedSize(v.size)}
+                            className={cn(
+                              "w-10 h-10 border flex items-center justify-center text-sm transition-colors",
+                              pickedSize === v.size ? "border-primary bg-primary/5 text-primary font-medium" : "border-[#d4c9bf] hover:border-primary"
+                            )}
+                          >
                             {v.size}
-                          </span>
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -383,12 +446,19 @@ export default function Catalogo() {
                   {/* Colors */}
                   {getAvailableColors(selected).length > 0 && (
                     <div className="mb-6">
-                      <p className="text-xs tracking-widest uppercase text-muted-foreground mb-2">Cores disponíveis</p>
+                      <p className="text-xs tracking-widest uppercase text-muted-foreground mb-2">Cor</p>
                       <div className="flex gap-2 flex-wrap">
                         {getAvailableColors(selected).map(v => (
-                          <span key={v.color} className="px-3 py-1.5 border border-[#d4c9bf] text-xs text-muted-foreground">
+                          <button
+                            key={v.color}
+                            onClick={() => setPickedColor(v.color)}
+                            className={cn(
+                              "px-3 py-1.5 border text-xs transition-colors",
+                              pickedColor === v.color ? "border-primary bg-primary/5 text-primary font-medium" : "border-[#d4c9bf] text-muted-foreground hover:border-primary"
+                            )}
+                          >
                             {v.color}
-                          </span>
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -408,13 +478,22 @@ export default function Catalogo() {
                         Peça temporariamente indisponível
                       </p>
                     ) : (
-                      <button
-                        onClick={() => handleWhatsApp(selected)}
-                        className="w-full bg-[#25D366] hover:bg-[#1db954] text-white py-3.5 text-sm tracking-widest uppercase transition-colors flex items-center justify-center gap-2.5"
-                      >
-                        <Phone className="w-4 h-4" />
-                        Pedir pelo WhatsApp
-                      </button>
+                      <>
+                        <button
+                          onClick={() => addToCart(selected, pickedSize, pickedColor)}
+                          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-3.5 text-sm tracking-widest uppercase transition-colors flex items-center justify-center gap-2.5"
+                        >
+                          <ShoppingBag className="w-4 h-4" />
+                          Adicionar ao Pedido
+                        </button>
+                        <button
+                          onClick={() => handleWhatsApp(selected)}
+                          className="w-full bg-[#25D366] hover:bg-[#1db954] text-white py-3 text-sm tracking-widest uppercase transition-colors flex items-center justify-center gap-2.5"
+                        >
+                          <Phone className="w-4 h-4" />
+                          Pedir diretamente
+                        </button>
+                      </>
                     )}
                     <button
                       onClick={() => setSelected(null)}

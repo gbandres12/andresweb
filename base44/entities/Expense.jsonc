@@ -1,0 +1,51 @@
+{
+  "name": "Expense",
+  "type": "object",
+  "properties": {
+    "description": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o da despesa"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Valor da despesa"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "fixa",
+        "vari\u00e1vel"
+      ],
+      "description": "Tipo de despesa"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "Aluguel",
+        "Energia",
+        "Internet",
+        "Sal\u00e1rios",
+        "Fornecedores",
+        "Marketing",
+        "Embalagens",
+        "Frete",
+        "Impostos",
+        "Outros"
+      ],
+      "description": "Categoria da despesa"
+    },
+    "month": {
+      "type": "string",
+      "description": "M\u00eas de refer\u00eancia (YYYY-MM)"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "description",
+    "amount",
+    "type",
+    "month"
+  ]
+}

@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Eye, Search, X } from 'lucide-react';
+import { Eye, Search, X, Receipt, TrendingDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import Despesas from '@/pages/Despesas';
 
 export default function Vendas() {
   const [sales, setSales] = useState([]);
@@ -14,6 +15,7 @@ export default function Vendas() {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selected, setSelected] = useState(null);
+  const [tab, setTab] = useState('vendas');
 
   useEffect(() => {
     base44.entities.Sale.list('-created_date', 200).then(s => { setSales(s); setLoading(false); });
@@ -28,6 +30,13 @@ export default function Vendas() {
   });
 
   const totalRevenue = filtered.filter(s => s.status === 'concluida').reduce((sum, s) => sum + (s.total || 0), 0);
+
+  // Month revenue for Despesas tab (current month concluded sales)
+  const now = new Date();
+  const monthRevenue = sales.filter(s => {
+    const d = new Date(s.created_date);
+    return s.status === 'concluida' && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).reduce((sum, s) => sum + (s.total || 0), 0);
 
   const statusColor = {
     concluida: 'bg-green-100 text-green-700',
@@ -44,10 +53,33 @@ export default function Vendas() {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-3xl font-serif font-semibold">Histórico de Vendas</h1>
+        <h1 className="text-3xl font-serif font-semibold">Vendas</h1>
         <p className="text-muted-foreground text-sm mt-0.5">{filtered.length} vendas · Total: R$ {totalRevenue.toFixed(2)}</p>
       </div>
 
+      {/* Tabs */}
+      <div className="flex gap-1 mb-6 border-b border-border">
+        {[
+          { key: 'vendas', label: 'Histórico de Vendas', icon: Receipt },
+          { key: 'despesas', label: 'Despesas & Lucro', icon: TrendingDown },
+        ].map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
+              tab === key
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Icon className="w-3.5 h-3.5" /> {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'despesas' && <Despesas monthRevenue={monthRevenue} />}
+
+      {tab === 'vendas' && <>
       {/* Filters */}
       <div className="flex gap-3 mb-6 flex-wrap">
         <div className="relative flex-1 min-w-48">
@@ -109,6 +141,7 @@ export default function Vendas() {
           <div className="text-center text-muted-foreground py-12">Nenhuma venda encontrada</div>
         )}
       </div>
+      </>}
 
       {/* Detail dialog */}
       <Dialog open={!!selected} onOpenChange={v => !v && setSelected(null)}>
