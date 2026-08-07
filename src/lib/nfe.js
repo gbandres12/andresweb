@@ -51,8 +51,15 @@ export function parseNFeXml(txt) {
   }).filter(n => n.items.length);
 }
 
-export function mapCategory(name) {
+export function mapCategory(name, categoryEntities = []) {
   const n = (name || '').toLowerCase();
+  // 1. Caso o nome do produto contenha o nome de uma categoria da loja (maior correspondência vence)
+  const byName = categoryEntities
+    .map(c => ({ name: c.name, key: (c.name || '').toLowerCase() }))
+    .filter(c => c.key && n.includes(c.key))
+    .sort((a, b) => b.key.length - a.key.length);
+  if (byName.length) return byName[0].name;
+  // 2. Regras por palavra-chave -> usa a categoria canônica só se existir na loja
   const rules = [
     [/vestid|macacão|macaquinho/, 'Vestidos'],
     [/blus|camis|regata|cropped/, 'Blusas'],
@@ -64,8 +71,13 @@ export function mapCategory(name) {
     [/sutiã|calcinha|lingerie|body|pijam/, 'Lingerie'],
     [/bolsa|cinto|óculos|oculos|acessório|acessorio|lenço|lenco|colar|brinco|ane/, 'Acessórios'],
   ];
-  for (const [re, cat] of rules) if (re.test(n)) return cat;
-  return 'Outros';
+  for (const [re, canon] of rules) if (re.test(n)) {
+    const match = categoryEntities.find(c => (c.name || '').toLowerCase() === canon.toLowerCase());
+    if (match) return match.name;
+  }
+  // 3. Fallback: categoria "Outros" da loja, primeira categoria, ou 'Outros'
+  const outros = categoryEntities.find(c => (c.name || '').toLowerCase() === 'outros');
+  return outros?.name || categoryEntities[0]?.name || 'Outros';
 }
 
 // Códigos numéricos das categorias (padrão de romaneio: 0–9).
@@ -128,7 +140,8 @@ export async function processImport(targetStoreId, notas, markup, onProgress) {
             category: cat,
             price: salePrice,
             cost_price: item.vUnCom || 0,
-            sku: refCode,
+            reference: refCode,
+            sku: item.sku || '',
             variants: [{ size: item.size, color: item.color, stock: item.qCom, sku: item.sku }],
             is_active: true,
             tags: [],

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Plus, Search, Edit2, Trash2, Eye, EyeOff, Star, Loader2, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,8 @@ export default function Produtos() {
   const [labelProducts, setLabelProducts] = useState([]);
   const [labelOpen, setLabelOpen] = useState(false);
   const scrollRef = useRef(null);
+  const [categories, setCategories] = useState([]);
+  useEffect(() => { base44.entities.Category.list('order').then(setCategories).catch(() => {}); }, []);
 
   const {
     items: products, setItems, loading, loadingMore, hasMore, reload,
@@ -111,7 +113,7 @@ export default function Produtos() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as categorias</SelectItem>
-                {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                {(categories.length ? categories.map(c => c.name) : CATEGORIES).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -130,6 +132,7 @@ export default function Produtos() {
                       <tr className="border-b border-border bg-muted/40">
                         <th className="text-left px-5 py-3 text-xs font-sans font-medium text-muted-foreground uppercase tracking-wide">Produto</th>
                         <th className="text-left px-4 py-3 text-xs font-sans font-medium text-muted-foreground uppercase tracking-wide hidden md:table-cell">Categoria</th>
+                        <th className="text-left px-4 py-3 text-xs font-sans font-medium text-muted-foreground uppercase tracking-wide hidden lg:table-cell">Referência</th>
                         <th className="text-left px-4 py-3 text-xs font-sans font-medium text-muted-foreground uppercase tracking-wide">Preço</th>
                         <th className="text-left px-4 py-3 text-xs font-sans font-medium text-muted-foreground uppercase tracking-wide hidden lg:table-cell">Estoque</th>
                         <th className="text-left px-4 py-3 text-xs font-sans font-medium text-muted-foreground uppercase tracking-wide">Status</th>
@@ -156,6 +159,9 @@ export default function Produtos() {
                             </td>
                             <td className="px-4 py-3 hidden md:table-cell">
                               <span className="text-sm text-muted-foreground">{product.category}</span>
+                            </td>
+                            <td className="px-4 py-3 hidden lg:table-cell">
+                              <span className="text-sm font-mono text-foreground">{product.reference || '—'}</span>
                             </td>
                             <td className="px-4 py-3">
                               <span className="text-sm font-semibold text-primary">R$ {product.price?.toFixed(2).replace('.', ',')}</span>

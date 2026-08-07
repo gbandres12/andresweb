@@ -16,19 +16,11 @@
     },
     "category": {
       "type": "string",
-      "enum": [
-        "Vestidos",
-        "Blusas",
-        "Cal\u00e7as",
-        "Saias",
-        "Shorts",
-        "Casacos",
-        "Acess\u00f3rios",
-        "Moda Praia",
-        "Lingerie",
-        "Outros"
-      ],
-      "description": "Categoria do produto"
+      "description": "Nome da categoria (refer\u00eancia \u00e0 entidade Category cadastrada pela loja)"
+    },
+    "reference": {
+      "type": "string",
+      "description": "Refer\u00eancia Fernanda \u2014 c\u00f3digo da categoria + pre\u00e7o de venda em centavos (ex.: 0490)"
     },
     "price": {
       "type": "number",

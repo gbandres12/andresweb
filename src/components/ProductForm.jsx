@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,12 +28,28 @@ export default function ProductForm({ product, onClose }) {
     is_featured: product?.is_featured ?? false,
     gtin: product?.gtin || '',
     sku: product?.sku || '',
+    reference: product?.reference || '',
     tags: product?.tags || [],
     active_tables: product?.active_tables || [],
   });
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [tagInput, setTagInput] = useState('');
+  const [categories, setCategories] = useState([]);
+  useEffect(() => {
+    base44.entities.Category.list('order').then(setCategories).catch(() => {});
+  }, []);
+
+  const refSuggestion = (() => {
+    const cat = categories.find(c => c.name === form.category);
+    if (!cat?.code) return '';
+    const cents = Math.max(0, Math.round((Number(form.price) || 0) * 100));
+    return `${cat.code}${cents.toString().padStart(3, '0')}`;
+  })();
+  const generateReference = () => {
+    if (refSuggestion) set('reference', refSuggestion);
+    else toast.error('Defina uma categoria (com código) e o preço');
+  };
 
   const set = (field, val) => setForm(f => ({ ...f, [field]: val }));
 
@@ -108,6 +124,7 @@ Gere um SKU curto, até 12 caracteres, sem espaços, combinando iniciais da loja
       ...form,
       price: Number(form.price),
       cost_price: Number(form.cost_price) || 0,
+      reference: form.reference || refSuggestion || '',
       active_tables: form.active_tables,
     };
     if (product) {
@@ -142,7 +159,11 @@ Gere um SKU curto, até 12 caracteres, sem espaços, combinando iniciais da loja
           <Select value={form.category} onValueChange={v => set('category', v)}>
             <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
             <SelectContent>
-              {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              {(() => {
+                const opts = categories.length ? categories.map(c => c.name) : CATEGORIES;
+                const list = form.category && !opts.includes(form.category) ? [...opts, form.category] : opts;
+                return list.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>);
+              })()}
             </SelectContent>
           </Select>
         </div>
@@ -170,6 +191,18 @@ Gere um SKU curto, até 12 caracteres, sem espaços, combinando iniciais da loja
               Sugerir IA
             </Button>
           </div>
+        </div>
+        <div className="col-span-2">
+          <label className="text-sm font-medium mb-1.5 block">Referência Fernanda (código + preço)</label>
+          <div className="flex gap-2">
+            <Input
+              value={form.reference}
+              onChange={e => set('reference', e.target.value.toUpperCase())}
+              placeholder={refSuggestion || 'Ex: 0490'}
+            />
+            <Button type="button" variant="outline" onClick={generateReference}>Gerar</Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">Junta o código da categoria + preço em centavos.{refSuggestion ? ` Sugestão: ${refSuggestion}` : ''}</p>
         </div>
         <div className="col-span-2">
           <label className="text-sm font-medium mb-1.5 block">Descrição</label>
