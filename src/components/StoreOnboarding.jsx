@@ -42,7 +42,7 @@ export default function StoreOnboarding({ onDone }) {
         console.warn('Backfill falhou (não bloqueia onboarding):', err);
       }
 
-      toast({ title: 'Loja criada!', description: 'Bem-vinda ao Sra Andres SaaS' });
+      toast({ title: 'Loja criada!', description: 'Bem-vinda ao Andres WEB' });
       onDone?.(store);
     } catch (err) {
       toast({ title: 'Erro ao criar loja', description: err.message, variant: 'destructive' });
@@ -60,9 +60,6 @@ export default function StoreOnboarding({ onDone }) {
             <Store className="w-7 h-7 text-primary" />
           </div>
           <h1 className="font-serif text-3xl font-semibold">Configure sua loja</h1>
-          <p className="text-muted-foreground text-sm mt-2">
-            Bem-vinda à plataforma Sra Andres. Vamos criar o seu espaço de gestão.
-          </p>
         </div>
 
         <form onSubmit={submit} className="bg-card border border-border rounded-2xl p-6 space-y-4 shadow-sm">

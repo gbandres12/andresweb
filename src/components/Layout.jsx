@@ -64,7 +64,7 @@ export default function Layout() {
               <span className="text-primary-foreground text-xs font-serif font-semibold">S</span>
             </div>
             <div className="flex-1 min-w-0">
-              <h1 className="font-serif text-lg font-semibold text-foreground tracking-wide leading-tight">Sra Andres</h1>
+              <h1 className="font-serif text-lg font-semibold text-foreground tracking-wide leading-tight">Andres WEB</h1>
               <p className="text-[11px] text-muted-foreground font-sans leading-tight">Plataforma SaaS</p>
             </div>
           </div>
@@ -154,7 +154,7 @@ export default function Layout() {
             <Menu className="w-5 h-5" />
           </button>
           <h1 className="font-serif text-lg font-semibold">
-            {store?.name || 'Sra Andres'}
+            {store?.name || 'Andres WEB'}
           </h1>
         </header>
 
