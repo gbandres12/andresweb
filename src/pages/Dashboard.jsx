@@ -84,8 +84,8 @@ export default function Dashboard() {
   const periodLabel = period === 'hoje' ? 'Hoje' : period === 'mes' ? 'do Mês' : 'Últimos 7 dias';
 
   if (loading) return (
-    <div className="flex items-center justify-center h-full bg-slate-900">
-      <div className="w-8 h-8 border-4 border-slate-700 border-t-white rounded-full animate-spin" />
+    <div className="flex items-center justify-center h-full bg-background">
+      <div className="w-8 h-8 border-4 border-border border-t-primary rounded-full animate-spin" />
     </div>
   );
 
@@ -96,12 +96,12 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="min-h-full bg-slate-900 text-slate-100">
+    <div className="min-h-full bg-background">
       <div className="p-6 lg:p-8 max-w-[1400px] mx-auto space-y-6">
         {/* Top bar */}
         <div className="flex items-center justify-between flex-wrap gap-3">
-          <h1 className="text-3xl lg:text-4xl font-bold text-white tracking-tight">Dashboard</h1>
-          <p className="text-slate-400 text-sm capitalize">
+          <h1 className="text-3xl lg:text-4xl font-serif font-semibold text-foreground tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground text-sm capitalize">
             {format(new Date(), "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR })}
           </p>
         </div>
@@ -109,26 +109,26 @@ export default function Dashboard() {
         {/* Selector bar */}
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
-            <span className="text-slate-400 text-sm">Loja Ativa:</span>
-            <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm">
-              <StoreIcon className="w-4 h-4 text-slate-400" />
-              <span className="font-medium text-white">{store?.name || '—'}</span>
-              <ChevronDown className="w-4 h-4 text-slate-500" />
+            <span className="text-muted-foreground text-sm">Loja Ativa:</span>
+            <div className="flex items-center gap-2 bg-card border border-border rounded-lg px-3 py-2 text-sm">
+              <StoreIcon className="w-4 h-4 text-muted-foreground" />
+              <span className="font-medium text-foreground">{store?.name || '—'}</span>
+              <ChevronDown className="w-4 h-4 text-muted-foreground/60" />
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-slate-400 text-sm">Período:</span>
-            <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm">
+            <span className="text-muted-foreground text-sm">Período:</span>
+            <div className="relative flex items-center">
               <select
                 value={period}
                 onChange={e => setPeriod(e.target.value)}
-                className="bg-transparent text-white font-medium outline-none cursor-pointer pr-6 -mr-2 appearance-none"
+                className="appearance-none bg-card border border-border rounded-lg pl-3 pr-9 py-2 text-sm font-medium text-foreground outline-none cursor-pointer focus:ring-1 focus:ring-ring"
               >
-                <option value="hoje" className="bg-slate-800">Hoje</option>
-                <option value="mes" className="bg-slate-800">Mês</option>
-                <option value="7dias" className="bg-slate-800">Últimos 7 dias</option>
+                <option value="hoje">Hoje</option>
+                <option value="mes">Mês</option>
+                <option value="7dias">Últimos 7 dias</option>
               </select>
-              <ChevronDown className="w-4 h-4 text-slate-500 -ml-5 pointer-events-none" />
+              <ChevronDown className="w-4 h-4 text-muted-foreground/60 absolute right-3 pointer-events-none" />
             </div>
           </div>
         </div>
@@ -144,16 +144,16 @@ export default function Dashboard() {
         {/* Main grid */}
         <div className="grid lg:grid-cols-12 gap-6">
           {/* Left: tabs card */}
-          <div className="lg:col-span-5 bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
-            <div className="flex border-b border-slate-200">
+          <div className="lg:col-span-5 bg-card border border-border rounded-xl shadow-sm overflow-hidden flex flex-col">
+            <div className="flex border-b border-border">
               {tabs.map(t => (
                 <button
                   key={t.id}
                   onClick={() => setActiveTab(t.id)}
-                  className={`flex-1 px-5 py-3.5 text-sm font-semibold transition-colors ${
+                  className={`flex-1 px-5 py-3.5 text-sm font-sans font-semibold transition-colors ${
                     activeTab === t.id
-                      ? 'bg-slate-900 text-white'
-                      : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                   }`}
                 >
                   {t.label}
@@ -166,65 +166,65 @@ export default function Dashboard() {
                 <div className="space-y-6">
                   <div>
                     <div className="flex items-center justify-between mb-3">
-                      <h2 className="text-lg font-bold text-slate-800">Vendas {periodLabel}</h2>
-                      <span className="text-xs text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
+                      <h2 className="text-lg font-serif font-semibold text-foreground">Vendas {periodLabel}</h2>
+                      <span className="text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
                         {periodSales.length} venda{periodSales.length !== 1 ? 's' : ''}
                       </span>
                     </div>
                     {periodSales.length === 0 ? (
-                      <p className="text-slate-400 text-sm py-6 text-center">Nenhuma venda registrada no período.</p>
+                      <p className="text-muted-foreground text-sm py-6 text-center">Nenhuma venda registrada no período.</p>
                     ) : (
                       <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                         {periodSales.slice(0, 8).map(sale => (
-                          <div key={sale.id} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
+                          <div key={sale.id} className="flex items-center justify-between py-2 border-b border-border/60 last:border-0">
                             <div className="flex flex-col">
-                              <span className="font-medium text-slate-800 text-sm">{sale.customer_name || 'Cliente avulso'}</span>
-                              <span className="text-xs text-slate-400">
+                              <span className="font-medium text-foreground text-sm">{sale.customer_name || 'Cliente avulso'}</span>
+                              <span className="text-xs text-muted-foreground">
                                 {format(new Date(sale.created_date), 'HH:mm')} · {sale.payment_method}
                               </span>
                             </div>
-                            <span className="font-bold text-slate-800 text-sm">
+                            <span className="font-semibold text-foreground text-sm">
                               R$ {sale.total?.toFixed(2).replace('.', ',')}
                             </span>
                           </div>
                         ))}
                       </div>
                     )}
-                    <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-                      <span className="text-sm text-slate-500">Faturamento do período</span>
-                      <span className="text-lg font-bold text-slate-800">R$ {periodRevenue.toFixed(2).replace('.', ',')}</span>
+                    <div className="mt-4 pt-3 border-t border-border/60 flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Faturamento do período</span>
+                      <span className="text-lg font-serif font-semibold text-foreground">R$ {periodRevenue.toFixed(2).replace('.', ',')}</span>
                     </div>
                   </div>
 
                   <div>
-                    <h2 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
-                      <Star className="w-4 h-4 text-slate-700" /> Peças Mais Vendidas Hoje
+                    <h2 className="text-lg font-serif font-semibold text-foreground mb-3 flex items-center gap-2">
+                      <Star className="w-4 h-4 text-primary" /> Peças Mais Vendidas Hoje
                     </h2>
                     {topProducts.length === 0 ? (
-                      <p className="text-slate-400 text-sm py-4 text-center">Nenhuma venda registrada hoje.</p>
+                      <p className="text-muted-foreground text-sm py-4 text-center">Nenhuma venda registrada hoje.</p>
                     ) : (
                       <div className="space-y-3">
                         {topProducts.map((item, i) => (
                           <div key={item.name} className="flex items-center gap-3">
                             <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                              i === 0 ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-500'
+                              i === 0 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
                             }`}>{i + 1}</span>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-slate-800 truncate">{item.name}</p>
-                              <div className="h-1.5 rounded-full bg-slate-100 mt-1.5 overflow-hidden">
-                                <div className="h-1.5 rounded-full bg-slate-700" style={{ width: `${Math.round((item.qty / topProducts[0].qty) * 100)}%` }} />
+                              <p className="text-sm font-medium text-foreground truncate">{item.name}</p>
+                              <div className="h-1.5 rounded-full bg-muted mt-1.5 overflow-hidden">
+                                <div className="h-1.5 rounded-full bg-primary" style={{ width: `${Math.round((item.qty / topProducts[0].qty) * 100)}%` }} />
                               </div>
                             </div>
                             <div className="text-right shrink-0">
-                              <p className="text-sm font-semibold text-slate-800">{item.qty} un</p>
-                              <p className="text-xs text-slate-400">R$ {item.revenue.toFixed(2).replace('.', ',')}</p>
+                              <p className="text-sm font-semibold text-foreground">{item.qty} un</p>
+                              <p className="text-xs text-muted-foreground">R$ {item.revenue.toFixed(2).replace('.', ',')}</p>
                             </div>
                           </div>
                         ))}
                       </div>
                     )}
                   </div>
-                  <Link to="/vendas" className="flex items-center gap-1 text-sm text-slate-700 font-medium hover:underline">
+                  <Link to="/vendas" className="flex items-center gap-1 text-sm text-primary font-medium hover:underline">
                     Ver histórico completo <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
@@ -232,28 +232,28 @@ export default function Dashboard() {
 
               {activeTab === 'estoque' && (
                 <div className="space-y-3">
-                  <h2 className="text-lg font-bold text-slate-800 mb-2">Alertas de Estoque</h2>
+                  <h2 className="text-lg font-serif font-semibold text-foreground mb-2">Alertas de Estoque</h2>
                   {outOfStock.length === 0 && lowStock.length === 0 ? (
-                    <p className="text-slate-400 text-sm py-6 text-center">Estoque em dia! ✓</p>
+                    <p className="text-muted-foreground text-sm py-6 text-center">Estoque em dia! ✓</p>
                   ) : (
                     <div className="space-y-2">
                       {outOfStock.slice(0, 6).map(p => (
-                        <div key={p.id} className="flex items-center gap-2 py-2 border-b border-slate-100 last:border-0">
-                          <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
-                          <span className="text-sm text-slate-800 truncate flex-1">{p.name}</span>
-                          <span className="text-xs font-semibold text-red-500 bg-red-50 px-2 py-0.5 rounded">Sem estoque</span>
+                        <div key={p.id} className="flex items-center gap-2 py-2 border-b border-border/60 last:border-0">
+                          <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
+                          <span className="text-sm text-foreground truncate flex-1">{p.name}</span>
+                          <span className="text-xs font-semibold text-destructive bg-destructive/10 px-2 py-0.5 rounded">Sem estoque</span>
                         </div>
                       ))}
                       {lowStock.slice(0, 6).map(p => (
-                        <div key={p.id} className="flex items-center gap-2 py-2 border-b border-slate-100 last:border-0">
-                          <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
-                          <span className="text-sm text-slate-800 truncate flex-1">{p.name}</span>
-                          <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded">Baixo</span>
+                        <div key={p.id} className="flex items-center gap-2 py-2 border-b border-border/60 last:border-0">
+                          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                          <span className="text-sm text-foreground truncate flex-1">{p.name}</span>
+                          <span className="text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded">Baixo</span>
                         </div>
                       ))}
                     </div>
                   )}
-                  <Link to="/estoque" className="flex items-center gap-1 text-sm text-slate-700 font-medium hover:underline pt-2">
+                  <Link to="/estoque" className="flex items-center gap-1 text-sm text-primary font-medium hover:underline pt-2">
                     Ver estoque completo <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
@@ -261,25 +261,25 @@ export default function Dashboard() {
 
               {activeTab === 'fiscal' && (
                 <div className="space-y-3">
-                  <h2 className="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-slate-700" /> Vendas Recentes
+                  <h2 className="text-lg font-serif font-semibold text-foreground mb-2 flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-primary" /> Vendas Recentes
                   </h2>
                   {periodSales.length === 0 ? (
-                    <p className="text-slate-400 text-sm py-6 text-center">Nenhuma venda no período.</p>
+                    <p className="text-muted-foreground text-sm py-6 text-center">Nenhuma venda no período.</p>
                   ) : (
                     <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                       {periodSales.slice(0, 12).map(sale => (
-                        <div key={sale.id} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
+                        <div key={sale.id} className="flex items-center justify-between py-2 border-b border-border/60 last:border-0">
                           <div className="flex flex-col">
-                            <span className="font-medium text-slate-800 text-sm">{sale.customer_name || 'Cliente avulso'}</span>
-                            <span className="text-xs text-slate-400">{format(new Date(sale.created_date), 'dd/MM HH:mm')} · {sale.payment_method}</span>
+                            <span className="font-medium text-foreground text-sm">{sale.customer_name || 'Cliente avulso'}</span>
+                            <span className="text-xs text-muted-foreground">{format(new Date(sale.created_date), 'dd/MM HH:mm')} · {sale.payment_method}</span>
                           </div>
-                          <span className="font-bold text-slate-800 text-sm">R$ {sale.total?.toFixed(2).replace('.', ',')}</span>
+                          <span className="font-semibold text-foreground text-sm">R$ {sale.total?.toFixed(2).replace('.', ',')}</span>
                         </div>
                       ))}
                     </div>
                   )}
-                  <p className="text-xs text-slate-400 pt-2">Integração NFC-e para emissão de cupom fiscal disponível em breve.</p>
+                  <p className="text-xs text-muted-foreground pt-2">Integração NFC-e para emissão de cupom fiscal disponível em breve.</p>
                 </div>
               )}
             </div>
@@ -287,72 +287,72 @@ export default function Dashboard() {
 
           {/* Middle: chart + CTA */}
           <div className="lg:col-span-4 space-y-6">
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-slate-700" /> Faturamento — 7 dias
+            <div className="bg-card border border-border rounded-xl shadow-sm p-6">
+              <h2 className="text-lg font-serif font-semibold text-foreground mb-4 flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-primary" /> Faturamento — 7 dias
               </h2>
               <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                  <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#64748b' }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: 'hsl(var(--muted-foreground))' }} />
                   <YAxis hide />
                   <Tooltip
                     formatter={(v) => [`R$ ${v.toFixed(2).replace('.', ',')}`, 'Total']}
-                    contentStyle={{ fontSize: 13, borderRadius: 8, border: '1px solid #e2e8f0', fontFamily: 'inherit' }}
+                    contentStyle={{ fontSize: 13, borderRadius: 8, border: '1px solid hsl(var(--border))', fontFamily: 'inherit', background: 'hsl(var(--card))' }}
                   />
-                  <Line type="monotone" dataKey="total" stroke="#334155" strokeWidth={2.5} dot={{ fill: '#334155', r: 3 }} activeDot={{ r: 5 }} />
+                  <Line type="monotone" dataKey="total" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={{ fill: 'hsl(var(--primary))', r: 3 }} activeDot={{ r: 5 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
 
             <Link
               to="/pdv"
-              className="block bg-slate-700 hover:bg-slate-800 transition-colors rounded-xl p-6 shadow-lg group"
+              className="block bg-primary hover:bg-primary/90 transition-colors rounded-xl p-6 shadow-sm group"
             >
               <div className="flex items-center gap-4">
-                <div className="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
-                  <ShoppingBag className="w-5 h-5 text-white" />
+                <div className="w-11 h-11 rounded-xl bg-primary-foreground/15 flex items-center justify-center shrink-0">
+                  <ShoppingBag className="w-5 h-5 text-primary-foreground" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-base font-bold text-white">Nova Venda</p>
-                  <p className="text-sm text-slate-300">Abrir caixa</p>
+                  <p className="text-base font-sans font-semibold text-primary-foreground">Nova Venda</p>
+                  <p className="text-sm text-primary-foreground/80">Abrir caixa</p>
                 </div>
-                <ArrowRight className="w-5 h-5 text-slate-300 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="w-5 h-5 text-primary-foreground/80 group-hover:translate-x-1 transition-transform" />
               </div>
             </Link>
           </div>
 
           {/* Right: alerts + shortcuts */}
           <div className="lg:col-span-3 space-y-6">
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-500" /> Alertas de Estoque
+            <div className="bg-card border border-border rounded-xl shadow-sm p-6">
+              <h2 className="text-base font-serif font-semibold text-foreground mb-4 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-600" /> Alertas de Estoque
               </h2>
               {lowStock.length === 0 && outOfStock.length === 0 ? (
-                <p className="text-slate-400 text-sm">Estoque em dia! ✓</p>
+                <p className="text-muted-foreground text-sm">Estoque em dia! ✓</p>
               ) : (
                 <div className="space-y-2.5">
                   {outOfStock.slice(0, 3).map(p => (
                     <div key={p.id} className="flex items-center gap-2">
-                      <span className="text-sm text-slate-700 truncate flex-1">{p.name}</span>
-                      <span className="text-xs font-semibold text-red-500 bg-red-50 px-2 py-0.5 rounded shrink-0">Sem estoque</span>
+                      <span className="text-sm text-foreground truncate flex-1">{p.name}</span>
+                      <span className="text-xs font-semibold text-destructive bg-destructive/10 px-2 py-0.5 rounded shrink-0">Sem estoque</span>
                     </div>
                   ))}
                   {lowStock.slice(0, 3).map(p => (
                     <div key={p.id} className="flex items-center gap-2">
-                      <span className="text-sm text-slate-700 truncate flex-1">{p.name}</span>
-                      <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded shrink-0">Baixo</span>
+                      <span className="text-sm text-foreground truncate flex-1">{p.name}</span>
+                      <span className="text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded shrink-0">Baixo</span>
                     </div>
                   ))}
                 </div>
               )}
-              <Link to="/estoque" className="flex items-center gap-1 text-sm text-slate-700 font-medium hover:underline mt-4 pt-3 border-t border-slate-100">
+              <Link to="/estoque" className="flex items-center gap-1 text-sm text-primary font-medium hover:underline mt-4 pt-3 border-t border-border/60">
                 Ver estoque completo <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
 
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-base font-bold text-slate-800 mb-4">Atalhos</h2>
+            <div className="bg-card border border-border rounded-xl shadow-sm p-6">
+              <h2 className="text-base font-serif font-semibold text-foreground mb-4">Atalhos</h2>
               <div className="space-y-1">
                 {[
                   { to: '/produtos', label: 'Produtos', desc: 'Gerenciar catálogo' },
@@ -362,13 +362,13 @@ export default function Dashboard() {
                   <Link
                     key={item.to}
                     to={item.to}
-                    className="flex items-center justify-between py-2.5 px-3 -mx-3 rounded-lg hover:bg-slate-50 transition-colors group"
+                    className="flex items-center justify-between py-2.5 px-3 -mx-3 rounded-lg hover:bg-muted transition-colors group"
                   >
                     <div>
-                      <p className="text-sm font-medium text-slate-800 group-hover:text-slate-900">{item.label}</p>
-                      <p className="text-xs text-slate-400">{item.desc}</p>
+                      <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{item.label}</p>
+                      <p className="text-xs text-muted-foreground">{item.desc}</p>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 transition-colors" />
+                    <ArrowRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary transition-colors" />
                   </Link>
                 ))}
               </div>
@@ -382,13 +382,13 @@ export default function Dashboard() {
 
 function KpiCard({ icon: Icon, label, value, sub }) {
   return (
-    <div className="bg-white rounded-xl shadow-lg p-5">
+    <div className="bg-card border border-border rounded-xl shadow-sm p-5">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-sm text-slate-500 font-medium">{label}</p>
-        <Icon className="w-5 h-5 text-slate-400" />
+        <p className="text-sm text-muted-foreground font-medium">{label}</p>
+        <Icon className="w-5 h-5 text-muted-foreground/60" />
       </div>
-      <p className="text-2xl lg:text-3xl font-bold text-slate-800 tracking-tight">{value}</p>
-      <p className="text-sm text-slate-400 mt-1">{sub}</p>
+      <p className="text-2xl lg:text-3xl font-serif font-semibold text-foreground tracking-tight">{value}</p>
+      <p className="text-sm text-muted-foreground mt-1">{sub}</p>
     </div>
   );
 }

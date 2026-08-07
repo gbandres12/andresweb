@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Search, Plus, Minus, Trash2, ShoppingCart, Check, ChevronDown } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, ShoppingCart, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -27,7 +27,7 @@ export default function PDV() {
     base44.entities.Product.filter({ is_active: true }).then(setProducts);
   }, []);
 
-  const filtered = products.filter(p => 
+  const filtered = products.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
     p.category?.toLowerCase().includes(search.toLowerCase())
   );
@@ -44,7 +44,7 @@ export default function PDV() {
     const key = `${product.id}-${variant.size}-${variant.color}`;
     const existing = cart.find(i => i.key === key);
     const stock = getProductStock(product, variant.size, variant.color);
-    
+
     if (existing) {
       if (existing.quantity >= stock) {
         toast.error('Estoque insuficiente');
@@ -128,11 +128,11 @@ export default function PDV() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-0px)] lg:h-screen overflow-hidden">
+    <div className="flex h-[calc(100vh-0px)] lg:h-screen overflow-hidden bg-background">
       {/* Products panel */}
       <div className="flex-1 flex flex-col overflow-hidden border-r border-border">
-        <div className="p-4 border-b border-border bg-card">
-          <h1 className="font-serif text-xl font-semibold mb-3">PDV — Frente de Caixa</h1>
+        <div className="p-5 border-b border-border bg-card">
+          <h1 className="font-serif text-2xl font-semibold mb-3 text-foreground">PDV — Frente de Caixa</h1>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -140,12 +140,12 @@ export default function PDV() {
               placeholder="Buscar produto ou categoria..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="pl-9"
+              className="pl-9 h-11"
             />
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 content-start">
+        <div className="flex-1 overflow-y-auto p-5 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 content-start">
           {filtered.map(product => (
             <ProductCard
               key={product.id}
@@ -156,7 +156,7 @@ export default function PDV() {
             />
           ))}
           {filtered.length === 0 && (
-            <div className="col-span-full text-center text-muted-foreground py-12">
+            <div className="col-span-full text-center text-muted-foreground py-12 text-base">
               Nenhum produto encontrado
             </div>
           )}
@@ -164,11 +164,11 @@ export default function PDV() {
       </div>
 
       {/* Cart panel */}
-      <div className="w-80 xl:w-96 flex flex-col bg-card">
-        <div className="p-4 border-b border-border flex items-center gap-2">
+      <div className="w-80 xl:w-[26rem] flex flex-col bg-card">
+        <div className="p-5 border-b border-border flex items-center gap-2">
           <ShoppingCart className="w-5 h-5 text-primary" />
-          <h2 className="font-serif text-lg font-semibold">Carrinho</h2>
-          <span className="ml-auto bg-primary text-primary-foreground text-xs rounded-full px-2 py-0.5 font-sans">
+          <h2 className="font-serif text-xl font-semibold text-foreground">Carrinho</h2>
+          <span className="ml-auto bg-primary text-primary-foreground text-xs rounded-full px-2.5 py-1 font-sans font-semibold">
             {cart.length}
           </span>
         </div>
@@ -178,24 +178,24 @@ export default function PDV() {
             <div key={item.key} className="bg-background rounded-xl p-3 border border-border">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{item.product_name}</p>
+                  <p className="text-sm font-medium truncate text-foreground">{item.product_name}</p>
                   <p className="text-xs text-muted-foreground">{item.variant_size} · {item.variant_color}</p>
                 </div>
                 <button onClick={() => removeFromCart(item.key)} className="text-muted-foreground hover:text-destructive">
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
-              <div className="flex items-center justify-between mt-2">
-                <div className="flex items-center gap-1.5">
-                  <button onClick={() => updateQty(item.key, -1)} className="w-6 h-6 rounded-full border border-border flex items-center justify-center hover:bg-muted">
-                    <Minus className="w-3 h-3" />
+              <div className="flex items-center justify-between mt-2.5">
+                <div className="flex items-center gap-2">
+                  <button onClick={() => updateQty(item.key, -1)} className="w-7 h-7 rounded-full border border-border flex items-center justify-center hover:bg-muted transition-colors">
+                    <Minus className="w-3.5 h-3.5" />
                   </button>
-                  <span className="text-sm font-medium w-6 text-center">{item.quantity}</span>
-                  <button onClick={() => updateQty(item.key, 1)} className="w-6 h-6 rounded-full border border-border flex items-center justify-center hover:bg-muted">
-                    <Plus className="w-3 h-3" />
+                  <span className="text-sm font-semibold w-7 text-center text-foreground">{item.quantity}</span>
+                  <button onClick={() => updateQty(item.key, 1)} className="w-7 h-7 rounded-full border border-border flex items-center justify-center hover:bg-muted transition-colors">
+                    <Plus className="w-3.5 h-3.5" />
                   </button>
                 </div>
-                <span className="text-sm font-semibold text-primary">R$ {item.total.toFixed(2)}</span>
+                <span className="text-sm font-semibold text-primary">R$ {item.total.toFixed(2).replace('.', ',')}</span>
               </div>
             </div>
           ))}
@@ -207,20 +207,18 @@ export default function PDV() {
         </div>
 
         {/* Summary & checkout */}
-        <div className="p-4 border-t border-border space-y-3">
-          <Input placeholder="Nome do cliente" value={customerName} onChange={e => setCustomerName(e.target.value)} className="text-sm" />
-          <Input placeholder="Telefone (opcional)" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} className="text-sm" />
-          <Input 
-            type="number" 
-            placeholder="Desconto (R$)" 
-            value={discount || ''} 
-            onChange={e => setDiscount(Number(e.target.value))} 
-            className="text-sm" 
+        <div className="p-5 border-t border-border space-y-3">
+          <Input placeholder="Nome do cliente" value={customerName} onChange={e => setCustomerName(e.target.value)} className="h-10" />
+          <Input placeholder="Telefone (opcional)" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} className="h-10" />
+          <Input
+            type="number"
+            placeholder="Desconto (R$)"
+            value={discount || ''}
+            onChange={e => setDiscount(Number(e.target.value))}
+            className="h-10"
           />
           <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-            <SelectTrigger>
-              <SelectValue placeholder="Forma de pagamento" />
-            </SelectTrigger>
+            <SelectTrigger className="h-10"><SelectValue placeholder="Forma de pagamento" /></SelectTrigger>
             <SelectContent>
               {['Dinheiro', 'Cartão de Crédito', 'Cartão de Débito', 'PIX', 'Misto'].map(m => (
                 <SelectItem key={m} value={m}>{m}</SelectItem>
@@ -228,23 +226,23 @@ export default function PDV() {
             </SelectContent>
           </Select>
 
-          <div className="bg-muted rounded-xl p-3 space-y-1">
+          <div className="bg-muted rounded-xl p-4 space-y-1.5">
             <div className="flex justify-between text-sm text-muted-foreground">
-              <span>Subtotal</span><span>R$ {subtotal.toFixed(2)}</span>
+              <span>Subtotal</span><span>R$ {subtotal.toFixed(2).replace('.', ',')}</span>
             </div>
             {discount > 0 && (
-              <div className="flex justify-between text-sm text-green-600">
-                <span>Desconto</span><span>- R$ {discount.toFixed(2)}</span>
+              <div className="flex justify-between text-sm text-emerald-700">
+                <span>Desconto</span><span>- R$ {discount.toFixed(2).replace('.', ',')}</span>
               </div>
             )}
-            <div className="flex justify-between text-base font-serif font-semibold text-foreground border-t border-border pt-1 mt-1">
-              <span>Total</span><span>R$ {total.toFixed(2)}</span>
+            <div className="flex justify-between text-lg font-serif font-semibold text-foreground border-t border-border pt-2 mt-1">
+              <span>Total</span><span>R$ {total.toFixed(2).replace('.', ',')}</span>
             </div>
           </div>
 
-          <Button 
-            className="w-full" 
-            onClick={finalizeSale} 
+          <Button
+            className="w-full h-11 text-base"
+            onClick={finalizeSale}
             disabled={loading || !cart.length}
           >
             {loading ? 'Finalizando...' : 'Finalizar Venda'}
@@ -256,15 +254,15 @@ export default function PDV() {
       <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
         <DialogContent className="sm:max-w-sm text-center">
           <div className="flex flex-col items-center gap-4 py-4">
-            <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
-              <Check className="w-8 h-8 text-green-600" />
+            <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center">
+              <Check className="w-8 h-8 text-emerald-600" />
             </div>
             <div>
-              <h2 className="font-serif text-2xl font-semibold">Venda Realizada!</h2>
+              <h2 className="font-serif text-2xl font-semibold text-foreground">Venda Realizada!</h2>
               <p className="text-muted-foreground text-sm mt-1">#{lastSaleNum}</p>
-              <p className="text-xl font-serif font-semibold text-primary mt-2">R$ {total.toFixed(2)}</p>
+              <p className="text-xl font-serif font-semibold text-primary mt-2">R$ {total.toFixed(2).replace('.', ',')}</p>
             </div>
-            <Button onClick={() => setShowSuccess(false)} className="w-full">Nova Venda</Button>
+            <Button onClick={() => setShowSuccess(false)} className="w-full h-11">Nova Venda</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -287,49 +285,49 @@ function ProductCard({ product, onAdd, selectedVariants, setSelectedVariants }) 
 
   return (
     <div className={cn(
-      "bg-card border border-border rounded-2xl p-3 flex flex-col gap-2 hover:border-primary/40 transition-all",
+      "bg-card border border-border rounded-xl p-3 flex flex-col gap-2 hover:border-primary/40 transition-all",
       stock === 0 && "opacity-60"
     )}>
       {product.images?.[0] ? (
-        <img src={product.images[0]} alt={product.name} className="w-full aspect-square object-cover rounded-xl" />
+        <img src={product.images[0]} alt={product.name} className="w-full aspect-square object-cover rounded-lg" />
       ) : (
-        <div className="w-full aspect-square bg-muted rounded-xl flex items-center justify-center">
+        <div className="w-full aspect-square bg-muted rounded-lg flex items-center justify-center">
           <span className="text-3xl">👗</span>
         </div>
       )}
       <div>
-        <p className="text-sm font-medium truncate">{product.name}</p>
+        <p className="text-sm font-medium truncate text-foreground">{product.name}</p>
         <p className="text-xs text-muted-foreground">{product.category}</p>
-        <p className="text-sm font-semibold text-primary mt-0.5">R$ {product.price?.toFixed(2)}</p>
+        <p className="text-base font-serif font-semibold text-primary mt-0.5">R$ {product.price?.toFixed(2).replace('.', ',')}</p>
       </div>
 
       {sizes.length > 1 && (
-        <select 
-          value={selSize} 
+        <select
+          value={selSize}
           onChange={e => setVariant('size', e.target.value)}
-          className="text-xs border border-border rounded-lg px-2 py-1 bg-background"
+          className="text-xs border border-border rounded-lg px-2 py-1.5 bg-background text-foreground"
         >
           {sizes.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
       )}
       {colors.length > 1 && (
-        <select 
-          value={selColor} 
+        <select
+          value={selColor}
           onChange={e => setVariant('color', e.target.value)}
-          className="text-xs border border-border rounded-lg px-2 py-1 bg-background"
+          className="text-xs border border-border rounded-lg px-2 py-1.5 bg-background text-foreground"
         >
           {colors.map(c => <option key={c} value={c}>{c}</option>)}
         </select>
       )}
 
-      <div className="flex items-center justify-between mt-auto">
-        <span className={cn("text-xs", stock <= 3 ? "text-amber-500" : "text-muted-foreground")}>
+      <div className="flex items-center justify-between mt-auto pt-1">
+        <span className={cn("text-xs", stock <= 3 ? "text-amber-600" : "text-muted-foreground")}>
           {stock === 0 ? 'Sem estoque' : `${stock} un`}
         </span>
         <button
           disabled={stock === 0}
           onClick={() => onAdd(product, { size: selSize, color: selColor })}
-          className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-40 hover:opacity-80 transition-opacity"
+          className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-40 hover:opacity-80 transition-opacity"
         >
           <Plus className="w-4 h-4" />
         </button>
