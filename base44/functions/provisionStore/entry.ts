@@ -26,7 +26,7 @@ export default async function(req: Request): Promise<Response> {
           { created_by_id: user.id, store_id: { $exists: false } },
           { $set: { store_id: storeId } }
         );
-        const count = res?.modified_count ?? res?.modifiedCount ?? 0;
+        const count = res?.updated ?? res?.modified_count ?? res?.modifiedCount ?? 0;
         results[name] = count;
         totalBackfilled += count;
       } catch (e) {
