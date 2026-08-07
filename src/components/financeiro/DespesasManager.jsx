@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { format, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -15,6 +15,15 @@ const CATEGORIES = ['Aluguel', 'Energia', 'Internet', 'Salários', 'Fornecedores
 export default function DespesasManager({ expenses, sales, selectedMonth, onMonthChange, onRefresh }) {
   const [showForm, setShowForm] = useState(false);
   const [filterType, setFilterType] = useState('all');
+  const [costCenters, setCostCenters] = useState([]);
+
+  useEffect(() => {
+    base44.entities.CostCenter.list('-is_active', 200)
+      .then(list => setCostCenters(list || []))
+      .catch(() => {});
+  }, []);
+
+  const ccName = (id) => costCenters.find(c => c.id === id)?.name;
 
   const monthOptions = Array.from({ length: 12 }, (_, i) => {
     const d = subMonths(new Date(), i);
@@ -115,6 +124,7 @@ export default function DespesasManager({ expenses, sales, selectedMonth, onMont
             <tr className="border-b border-border bg-muted/40">
               <th className="text-left px-5 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Descrição</th>
               <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden sm:table-cell">Categoria</th>
+              <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden md:table-cell">Centro de custo</th>
               <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden sm:table-cell">Tipo</th>
               <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Valor</th>
               <th className="px-4 py-3"></th>
@@ -128,6 +138,7 @@ export default function DespesasManager({ expenses, sales, selectedMonth, onMont
                   {e.notes && <p className="text-xs text-muted-foreground">{e.notes}</p>}
                 </td>
                 <td className="px-4 py-3 text-sm text-muted-foreground hidden sm:table-cell">{e.category || '—'}</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground hidden md:table-cell">{ccName(e.cost_center) || '—'}</td>
                 <td className="px-4 py-3 hidden sm:table-cell">
                   <span className={cn(
                     "text-xs px-2 py-0.5 rounded-full font-medium",
@@ -160,15 +171,15 @@ export default function DespesasManager({ expenses, sales, selectedMonth, onMont
           <DialogHeader>
             <DialogTitle className="font-serif text-xl">Nova Despesa</DialogTitle>
           </DialogHeader>
-          <ExpenseForm month={selectedMonth} onClose={() => { setShowForm(false); onRefresh(); }} />
+          <ExpenseForm month={selectedMonth} costCenters={costCenters} onClose={() => { setShowForm(false); onRefresh(); }} />
         </DialogContent>
       </Dialog>
     </div>
   );
 }
 
-function ExpenseForm({ month, onClose }) {
-  const [form, setForm] = useState({ description: '', amount: '', type: 'fixa', category: 'Outros', notes: '', month });
+function ExpenseForm({ month, costCenters, onClose }) {
+  const [form, setForm] = useState({ description: '', amount: '', type: 'fixa', category: 'Outros', cost_center: '', notes: '', month });
   const [saving, setSaving] = useState(false);
   const set = (f, v) => setForm(p => ({ ...p, [f]: v }));
 
@@ -209,6 +220,16 @@ function ExpenseForm({ month, onClose }) {
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
             {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+      <div>
+        <label className="text-sm font-medium mb-1.5 block">Centro de custo</label>
+        <Select value={form.cost_center || 'none'} onValueChange={v => set('cost_center', v === 'none' ? '' : v)}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Nenhum</SelectItem>
+            {costCenters.filter(c => c.is_active !== false).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>

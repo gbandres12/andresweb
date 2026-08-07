@@ -16,21 +16,47 @@ import {
   DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
 
-const navItems = [
-  { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/pdv', label: 'PDV / Caixa', icon: ShoppingCart },
-  { path: '/produtos', label: 'Produtos', icon: Package },
-  { path: '/entrada-inteligente', label: 'Entrada IA', icon: ScanLine },
-  { path: '/importar-nfe', label: 'Importar NFe', icon: FileText },
-  { path: '/estoque', label: 'Estoque', icon: BarChart3 },
-  { path: '/clientes', label: 'Clientes', icon: Users },
-  { path: '/vendas', label: 'Vendas', icon: StoreIcon },
-  { path: '/financeiro', label: 'Financeiro', icon: Wallet },
-  { path: '/calculadora', label: 'Calculadora', icon: Calculator },
-  { path: '/lojas', label: 'Minhas Lojas', icon: Building2 },
-  { path: '/pesquisa-global', label: 'Pesquisa Global', icon: Globe },
-  { path: '/relatorios', label: 'Relatórios', icon: PieChart },
-  { path: '/funcionarios', label: 'Funcionários', icon: Users },
+const navGroups = [
+  {
+    label: 'Visão Geral',
+    items: [
+      { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+    ],
+  },
+  {
+    label: 'Operação',
+    items: [
+      { path: '/pdv', label: 'PDV / Caixa', icon: ShoppingCart },
+      { path: '/vendas', label: 'Vendas', icon: StoreIcon },
+      { path: '/clientes', label: 'Clientes', icon: Users },
+    ],
+  },
+  {
+    label: 'Estoque & Produtos',
+    items: [
+      { path: '/produtos', label: 'Produtos', icon: Package },
+      { path: '/estoque', label: 'Estoque', icon: BarChart3 },
+      { path: '/entrada-inteligente', label: 'Entrada IA', icon: ScanLine },
+      { path: '/importar-nfe', label: 'Importar NFe', icon: FileText },
+      { path: '/pesquisa-global', label: 'Pesquisa Global', icon: Globe },
+    ],
+  },
+  {
+    label: 'Financeiro',
+    items: [
+      { path: '/financeiro', label: 'Financeiro', icon: Wallet },
+      { path: '/relatorios', label: 'Relatórios', icon: PieChart },
+      { path: '/calculadora', label: 'Calculadora', icon: Calculator },
+    ],
+  },
+  {
+    label: 'Administração',
+    items: [
+      { path: '/lojas', label: 'Minhas Lojas', icon: Building2 },
+      { path: '/funcionarios', label: 'Funcionários', icon: Users },
+      { path: '/configuracoes', label: 'Configurações', icon: Settings },
+    ],
+  },
 ];
 
 export default function Layout() {
@@ -40,7 +66,9 @@ export default function Layout() {
   const { store, stores, loading, needsOnboarding, completeOnboarding, switchStore } = useStore();
   const { user } = useAuth();
 
-  const visibleNav = navItems.filter(n => canAccess(n.path, user));
+  const visibleGroups = navGroups
+    .map(g => ({ ...g, items: g.items.filter(n => canAccess(n.path, user)) }))
+    .filter(g => g.items.length > 0);
 
   useEffect(() => {
     if (user && !canAccess(location.pathname, user)) {
@@ -128,27 +156,34 @@ export default function Layout() {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-          {visibleNav.map(({ path, label, icon: Icon }) => {
-            const active = location.pathname === path;
-            return (
-              <Link
-                key={path}
-                to={path}
-                onClick={() => setSidebarOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-sans font-medium transition-all group",
-                  active
-                    ? "bg-accent text-accent-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                )}
-              >
-                <Icon className={cn("w-4 h-4 shrink-0", active ? "text-primary" : "")} />
-                <span>{label}</span>
-                {active && <ChevronRight className="w-3 h-3 ml-auto text-primary" />}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-4">
+          {visibleGroups.map(group => (
+            <div key={group.label}>
+              <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">{group.label}</p>
+              <div className="space-y-0.5">
+                {group.items.map(({ path, label, icon: Icon }) => {
+                  const active = location.pathname === path;
+                  return (
+                    <Link
+                      key={path}
+                      to={path}
+                      onClick={() => setSidebarOpen(false)}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-sans font-medium transition-all group",
+                        active
+                          ? "bg-accent text-accent-foreground"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                      )}
+                    >
+                      <Icon className={cn("w-4 h-4 shrink-0", active ? "text-primary" : "")} />
+                      <span>{label}</span>
+                      {active && <ChevronRight className="w-3 h-3 ml-auto text-primary" />}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         {/* Footer */}

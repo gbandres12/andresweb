@@ -23,6 +23,7 @@ import MinhasLojas from '@/pages/MinhasLojas';
 import PesquisaGlobal from '@/pages/PesquisaGlobal';
 import Relatorios from '@/pages/Relatorios';
 import Funcionarios from '@/pages/Funcionarios';
+import Configuracoes from '@/pages/Configuracoes';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -75,6 +76,7 @@ const AuthenticatedApp = () => {
         <Route path="/pesquisa-global" element={<PesquisaGlobal />} />
         <Route path="/relatorios" element={<Relatorios />} />
         <Route path="/funcionarios" element={<Funcionarios />} />
+        <Route path="/configuracoes" element={<Configuracoes />} />
       </Route>
 
       <Route path="*" element={<PageNotFound />} />
