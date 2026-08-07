@@ -22,6 +22,7 @@ import ImportarNFe from '@/pages/ImportarNFe';
 import MinhasLojas from '@/pages/MinhasLojas';
 import PesquisaGlobal from '@/pages/PesquisaGlobal';
 import Relatorios from '@/pages/Relatorios';
+import Funcionarios from '@/pages/Funcionarios';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -73,6 +74,7 @@ const AuthenticatedApp = () => {
         <Route path="/lojas" element={<MinhasLojas />} />
         <Route path="/pesquisa-global" element={<PesquisaGlobal />} />
         <Route path="/relatorios" element={<Relatorios />} />
+        <Route path="/funcionarios" element={<Funcionarios />} />
       </Route>
 
       <Route path="*" element={<PageNotFound />} />

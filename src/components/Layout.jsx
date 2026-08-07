@@ -1,9 +1,11 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/lib/AuthContext';
+import { canAccess, homeForRole } from '@/lib/permissions';
 import {
   LayoutDashboard, ShoppingCart, Package, BarChart3,
   Users, Menu, X, Store as StoreIcon, ChevronRight, LogOut, Wallet, Calculator,
-  Building2, ScanLine, FileText, Check, ChevronsUpDown, Plus, Settings, Globe, PieChart
+  Building2, ScanLine, FileText, Check, ChevronsUpDown, Plus, Settings, Globe, PieChart, ShieldAlert
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { cn } from '@/lib/utils';
@@ -28,6 +30,7 @@ const navItems = [
   { path: '/lojas', label: 'Minhas Lojas', icon: Building2 },
   { path: '/pesquisa-global', label: 'Pesquisa Global', icon: Globe },
   { path: '/relatorios', label: 'Relatórios', icon: PieChart },
+  { path: '/funcionarios', label: 'Funcionários', icon: Users },
 ];
 
 export default function Layout() {
@@ -35,6 +38,17 @@ export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { store, stores, loading, needsOnboarding, completeOnboarding, switchStore } = useStore();
+  const { user } = useAuth();
+
+  const visibleNav = navItems.filter(n => canAccess(n.path, user));
+
+  useEffect(() => {
+    if (user && !canAccess(location.pathname, user)) {
+      navigate(homeForRole(user), { replace: true });
+    }
+  }, [user, location.pathname, navigate]);
+
+  const accessBlocked = !!user && !canAccess(location.pathname, user);
 
   if (needsOnboarding && !loading) {
     return <StoreOnboarding onDone={completeOnboarding} />;
@@ -115,7 +129,7 @@ export default function Layout() {
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-          {navItems.map(({ path, label, icon: Icon }) => {
+          {visibleNav.map(({ path, label, icon: Icon }) => {
             const active = location.pathname === path;
             return (
               <Link
@@ -161,7 +175,12 @@ export default function Layout() {
         </header>
 
         <main className="flex-1 overflow-y-auto">
-          <Outlet />
+          {accessBlocked ? (
+            <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
+              <ShieldAlert className="w-8 h-8" />
+              <p className="text-sm">Você não tem acesso a esta área.</p>
+            </div>
+          ) : <Outlet />}
         </main>
       </div>
     </div>
