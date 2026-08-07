@@ -6,6 +6,7 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import Layout from '@/components/Layout';
+import { StoreProvider } from '@/lib/StoreContext';
 import Dashboard from '@/pages/Dashboard';
 import PDV from '@/pages/PDV';
 import Produtos from '@/pages/Produtos';
@@ -18,6 +19,7 @@ import Financeiro from '@/pages/Financeiro';
 import Calculadora from '@/pages/Calculadora';
 import EntradaInteligente from '@/pages/EntradaInteligente';
 import ImportarNFe from '@/pages/ImportarNFe';
+import MinhasLojas from '@/pages/MinhasLojas';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -54,7 +56,7 @@ const AuthenticatedApp = () => {
       <Route path="/catalogo" element={<Catalogo />} />
 
       {/* Admin app with sidebar layout */}
-      <Route element={<Layout />}>
+      <Route element={<StoreProvider><Layout /></StoreProvider>}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/pdv" element={<PDV />} />
         <Route path="/produtos" element={<Produtos />} />
@@ -66,6 +68,7 @@ const AuthenticatedApp = () => {
         <Route path="/calculadora" element={<Calculadora />} />
         <Route path="/entrada-inteligente" element={<EntradaInteligente />} />
         <Route path="/importar-nfe" element={<ImportarNFe />} />
+        <Route path="/lojas" element={<MinhasLojas />} />
       </Route>
 
       <Route path="*" element={<PageNotFound />} />

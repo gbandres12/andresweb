@@ -25,7 +25,7 @@ async function resolveStoreId() {
   _storeIdPromise = (async () => {
     try {
       const user = await _base44.auth.me();
-      _cachedStoreId = user?.data?.store_id || null;
+      _cachedStoreId = user?.data?.store_id || user?.store_id || null;
     } catch {
       _cachedStoreId = null;
     } finally {
