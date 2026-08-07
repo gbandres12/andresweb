@@ -1,0 +1,99 @@
+{
+  "name": "CashMovement",
+  "type": "object",
+  "properties": {
+    "store_id": {
+      "type": "string",
+      "description": "ID da loja (multi-tenant)"
+    },
+    "register_id": {
+      "type": "string",
+      "description": "ID do caixa (CashRegister) ao qual a movimenta\u00e7\u00e3o pertence"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "sangria",
+        "suprimento"
+      ],
+      "description": "Sangria = sa\u00edda de dinheiro; Suprimento = entrada de dinheiro"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Valor da movimenta\u00e7\u00e3o"
+    },
+    "description": {
+      "type": "string",
+      "description": "Motivo/descri\u00e7\u00e3o da movimenta\u00e7\u00e3o (ex: motivo da sangria)"
+    },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "Dinheiro",
+        "PIX",
+        "Cart\u00e3o"
+      ],
+      "default": "Dinheiro",
+      "description": "Forma de pagamento afetada"
+    },
+    "operator_name": {
+      "type": "string",
+      "description": "Quem registrou a movimenta\u00e7\u00e3o"
+    }
+  },
+  "required": [
+    "register_id",
+    "type",
+    "amount"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.store_id": "{{user.data.store_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "data.store_id": "{{user.data.store_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.store_id": "{{user.data.store_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "data.store_id": "{{user.data.store_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}
