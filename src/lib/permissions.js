@@ -13,10 +13,10 @@ const ACCESS = {
   owner: null, // null = acesso total
   manager: [
     '/pdv', '/produtos', '/entrada-inteligente', '/importar-nfe', '/estoque',
-    '/clientes', '/vendas', '/financeiro', '/calculadora',
+    '/clientes', '/vendas', '/trocas', '/financeiro', '/calculadora',
     '/pesquisa-global', '/relatorios', '/transferencias',
   ],
-  staff: ['/pdv', '/clientes', '/vendas'],
+  staff: ['/pdv', '/clientes', '/vendas', '/trocas'],
 };
 
 export function roleLabel(key) {

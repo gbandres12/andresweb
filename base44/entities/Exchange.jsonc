@@ -1,0 +1,184 @@
+{
+  "name": "Exchange",
+  "type": "object",
+  "properties": {
+    "store_id": {
+      "type": "string",
+      "description": "ID da loja (multi-tenant)"
+    },
+    "exchange_number": {
+      "type": "string",
+      "description": "N\u00famero da troca"
+    },
+    "original_sale_id": {
+      "type": "string",
+      "description": "ID da venda original"
+    },
+    "original_sale_number": {
+      "type": "string"
+    },
+    "customer_id": {
+      "type": "string"
+    },
+    "customer_name": {
+      "type": "string"
+    },
+    "returned_items": {
+      "type": "array",
+      "description": "Pe\u00e7as devolvidas pelo cliente",
+      "items": {
+        "type": "object",
+        "properties": {
+          "product_id": {
+            "type": "string"
+          },
+          "product_name": {
+            "type": "string"
+          },
+          "variant_size": {
+            "type": "string"
+          },
+          "variant_color": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit_price": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "new_items": {
+      "type": "array",
+      "description": "Pe\u00e7as entregues ao cliente",
+      "items": {
+        "type": "object",
+        "properties": {
+          "product_id": {
+            "type": "string"
+          },
+          "product_name": {
+            "type": "string"
+          },
+          "variant_size": {
+            "type": "string"
+          },
+          "variant_color": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "unit_price": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "returned_value": {
+      "type": "number",
+      "description": "Valor total das pe\u00e7as devolvidas"
+    },
+    "new_value": {
+      "type": "number",
+      "description": "Valor total das novas pe\u00e7as"
+    },
+    "difference": {
+      "type": "number",
+      "description": "new_value - returned_value. Positivo = cliente paga a diferen\u00e7a; negativo = loja devolve"
+    },
+    "reason": {
+      "type": "string",
+      "enum": [
+        "defeito",
+        "tamanho",
+        "cor",
+        "modelo",
+        "arrependimento",
+        "outros"
+      ],
+      "default": "outros",
+      "description": "Motivo da troca"
+    },
+    "payment_method": {
+      "type": "string",
+      "description": "Forma de pagamento da diferen\u00e7a (se cliente paga)"
+    },
+    "refund_method": {
+      "type": "string",
+      "description": "Forma de devolu\u00e7\u00e3o (se loja devolve)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "concluida",
+        "cancelada"
+      ],
+      "default": "concluida"
+    },
+    "operator_name": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "original_sale_id",
+    "returned_items",
+    "new_items",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.store_id": "{{user.data.store_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "data.store_id": "{{user.data.store_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.store_id": "{{user.data.store_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "data.store_id": "{{user.data.store_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

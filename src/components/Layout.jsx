@@ -5,7 +5,7 @@ import { canAccess, homeForRole } from '@/lib/permissions';
 import {
   LayoutDashboard, ShoppingCart, Package, BarChart3,
   Users, Menu, X, Store as StoreIcon, ChevronRight, LogOut, Wallet, Calculator,
-  Building2, ScanLine, FileText, Check, ChevronsUpDown, Plus, Settings, Globe, PieChart, ShieldAlert, ArrowLeftRight
+  Building2, ScanLine, FileText, Check, ChevronsUpDown, Plus, Settings, Globe, PieChart, ShieldAlert, ArrowLeftRight, RefreshCw
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { cn } from '@/lib/utils';
@@ -28,6 +28,7 @@ const navGroups = [
     items: [
       { path: '/pdv', label: 'PDV / Caixa', icon: ShoppingCart },
       { path: '/vendas', label: 'Vendas', icon: StoreIcon },
+      { path: '/trocas', label: 'Trocas', icon: RefreshCw },
       { path: '/clientes', label: 'Clientes', icon: Users },
     ],
   },
