@@ -121,6 +121,7 @@ export default function PDV() {
     if (!cart.length) { toast.error('Carrinho vazio'); return; }
     if (!paymentMethod) { toast.error('Selecione o pagamento'); return; }
     if (!salesChannel) { toast.error('Selecione o canal de venda'); return; }
+    if (!seller.trim()) { toast.error('Informe o vendedor'); return; }
 
     // Verifica inadimplência: títulos vencidos do cliente em Contas a Receber
     if (customerName.trim()) {
@@ -366,7 +367,10 @@ export default function PDV() {
             </Select>
           </div>
           <Input placeholder="Nome do consultor" value={consultant} onChange={e => setConsultant(e.target.value)} className="h-10" />
-          <Input placeholder="Vendedor (caixa)" value={seller} onChange={e => setSeller(e.target.value)} className="h-10" />
+          <div>
+            <label className="text-xs font-semibold text-foreground mb-1.5 block">Vendedor *</label>
+            <Input placeholder="Nome do vendedor" value={seller} onChange={e => setSeller(e.target.value)} className={cn("h-10", !seller.trim() && "border-primary ring-1 ring-primary/30")} />
+          </div>
           <Input placeholder="Nome do cliente" value={customerName} onChange={e => setCustomerName(e.target.value)} className="h-10" />
           <Input placeholder="Telefone (opcional)" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} className="h-10" />
           <Input
