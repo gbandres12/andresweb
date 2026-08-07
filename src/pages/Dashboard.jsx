@@ -382,12 +382,13 @@ export default function Dashboard() {
 
 function KpiCard({ icon: Icon, label, value, sub }) {
   return (
-    <div className="bg-card border border-border rounded-xl shadow-sm p-5">
+    <div className="relative bg-card border border-border rounded-xl shadow-sm p-5 overflow-hidden">
+      <div className="absolute top-0 left-0 right-0 h-[3px] bg-primary" />
       <div className="flex items-center justify-between mb-3">
-        <p className="text-sm text-muted-foreground font-medium">{label}</p>
-        <Icon className="w-5 h-5 text-muted-foreground/60" />
+        <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">{label}</p>
+        <Icon className="w-5 h-5 text-muted-foreground/50" />
       </div>
-      <p className="text-2xl lg:text-3xl font-serif font-semibold text-foreground tracking-tight">{value}</p>
+      <p className="text-2xl lg:text-3xl font-serif font-semibold text-foreground tracking-tight tabular-nums">{value}</p>
       <p className="text-sm text-muted-foreground mt-1">{sub}</p>
     </div>
   );
