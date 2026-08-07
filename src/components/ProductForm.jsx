@@ -22,6 +22,7 @@ export default function ProductForm({ product, onClose }) {
     variants: product?.variants || [],
     is_active: product?.is_active ?? true,
     is_featured: product?.is_featured ?? false,
+    gtin: product?.gtin || '',
     tags: product?.tags || [],
     price_tables: product?.price_tables || { ...PRICE_TABLE_DEFAULTS },
   });
@@ -30,6 +31,12 @@ export default function ProductForm({ product, onClose }) {
   const [tagInput, setTagInput] = useState('');
 
   const set = (field, val) => setForm(f => ({ ...f, [field]: val }));
+
+  const generateGtin = () => {
+    // Gera um código interno de 12 dígitos (prefixo 2 = uso interno) para etiqueta
+    const code = '2' + Date.now().toString().slice(-11);
+    set('gtin', code);
+  };
 
   const addVariant = () => {
     set('variants', [...form.variants, { size: 'M', color: 'Preto', stock: 0, sku: '' }]);
@@ -114,6 +121,17 @@ export default function ProductForm({ product, onClose }) {
               {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
             </SelectContent>
           </Select>
+        </div>
+        <div className="col-span-2">
+          <label className="text-sm font-medium mb-1.5 block">GTIN / Código de Barras (EAN)</label>
+          <div className="flex gap-2">
+            <Input
+              value={form.gtin}
+              onChange={e => set('gtin', e.target.value)}
+              placeholder="Leia com o scanner USB ou digite o código"
+            />
+            <Button type="button" variant="outline" onClick={generateGtin}>Gerar</Button>
+          </div>
         </div>
         <div className="col-span-2">
           <label className="text-sm font-medium mb-1.5 block">Descrição</label>

@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Search, Plus, Minus, Trash2, ShoppingCart, Check, Loader2 } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, ShoppingCart, Check, Loader2, ScanLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -24,6 +24,7 @@ export default function PDV() {
   const [loading, setLoading] = useState(false);
   const [selectedVariants, setSelectedVariants] = useState({});
   const [priceTable, setPriceTable] = useState('cliente_final');
+  const [scan, setScan] = useState('');
   const gridRef = useRef(null);
 
   const {
@@ -67,6 +68,26 @@ export default function PDV() {
         total: unit,
       }]);
     }
+  };
+
+  // Leitor de código de barras USB: o scanner digita o GTIN/EAN e envia Enter
+  const handleScan = async (e) => {
+    if (e.key !== 'Enter') return;
+    const code = scan.trim();
+    if (!code) return;
+    setScan('');
+    let product = products.find(p => p.gtin === code);
+    if (!product) {
+      try {
+        const found = await base44.entities.Product.filter({ gtin: code }, '-created_date', 1);
+        product = found[0];
+      } catch { /* ignore */ }
+    }
+    if (!product) { toast.error('Código não encontrado'); return; }
+    if (!product.is_active) { toast.error('Produto inativo'); return; }
+    const variant = product.variants?.find(v => (v.stock || 0) > 0) || product.variants?.[0];
+    if (!variant) { toast.error('Produto sem variantes'); return; }
+    addToCart(product, variant);
   };
 
   const updateQty = (key, delta) => {
@@ -152,6 +173,16 @@ export default function PDV() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="pl-9 h-11"
+            />
+          </div>
+          <div className="relative mt-3">
+            <ScanLine className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
+            <Input
+              placeholder="Leitor de código de barras (GTIN/EAN) — escaneie e dê Enter"
+              value={scan}
+              onChange={e => setScan(e.target.value)}
+              onKeyDown={handleScan}
+              className="pl-9 h-11 border-primary/40"
             />
           </div>
           <div className="flex items-center gap-2 mt-3">

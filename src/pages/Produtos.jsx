@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Plus, Search, Edit2, Trash2, Eye, EyeOff, Star, Loader2 } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Eye, EyeOff, Star, Loader2, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import ProductForm from '@/components/ProductForm';
 import CategoryManager from '@/components/CategoryManager';
+import LabelPrinter from '@/components/LabelPrinter';
 import { usePaginatedProducts } from '@/hooks/usePaginatedProducts';
 import { cn } from '@/lib/utils';
 
@@ -19,6 +20,8 @@ export default function Produtos() {
   const [filterCat, setFilterCat] = useState('all');
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [labelProducts, setLabelProducts] = useState([]);
+  const [labelOpen, setLabelOpen] = useState(false);
   const scrollRef = useRef(null);
 
   const {
@@ -70,9 +73,14 @@ export default function Produtos() {
             {products.length} exibidos{hasMore ? ' · role para carregar mais' : products.length > 0 ? ' · fim do catálogo' : ''}
           </p>
         </div>
-        <Button onClick={openNew}>
-          <Plus className="w-4 h-4 mr-2" /> Novo Produto
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => { setLabelProducts(products); setLabelOpen(true); }} disabled={!products.length}>
+            <Printer className="w-4 h-4 mr-2" /> Etiquetas
+          </Button>
+          <Button onClick={openNew}>
+            <Plus className="w-4 h-4 mr-2" /> Novo Produto
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="produtos">
@@ -173,6 +181,9 @@ export default function Produtos() {
                                 <button onClick={() => toggleActive(product)} title={product.is_active ? 'Desativar' : 'Ativar'} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground">
                                   {product.is_active ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                                 </button>
+                                <button onClick={() => { setLabelProducts([product]); setLabelOpen(true); }} title="Imprimir etiqueta" className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground">
+                                  <Printer className="w-3.5 h-3.5" />
+                                </button>
                                 <button onClick={() => openEdit(product)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground">
                                   <Edit2 className="w-3.5 h-3.5" />
                                 </button>
@@ -204,6 +215,8 @@ export default function Produtos() {
           </div>
         </TabsContent>
       </Tabs>
+
+      <LabelPrinter open={labelOpen} products={labelProducts} onClose={() => setLabelOpen(false)} />
 
       <Dialog open={showForm} onOpenChange={v => { if (!v) closeForm(); }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
