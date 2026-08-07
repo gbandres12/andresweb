@@ -1,16 +1,17 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Search, Plus, Minus, Trash2, ShoppingCart, Check } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, ShoppingCart, Check, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { usePaginatedProducts } from '@/hooks/usePaginatedProducts';
+
+const PAGE_SIZE = 40;
 
 export default function PDV() {
-  const [products, setProducts] = useState([]);
-  const [search, setSearch] = useState('');
   const [cart, setCart] = useState([]);
   const [discount, setDiscount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState('');
@@ -21,16 +22,12 @@ export default function PDV() {
   const [lastSaleNum, setLastSaleNum] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedVariants, setSelectedVariants] = useState({});
-  const searchRef = useRef();
+  const gridRef = useRef(null);
 
-  useEffect(() => {
-    base44.entities.Product.filter({ is_active: true }).then(setProducts);
-  }, []);
-
-  const filtered = products.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.category?.toLowerCase().includes(search.toLowerCase())
-  );
+  const {
+    items: products, setItems, loading: loadingProducts, loadingMore, hasMore,
+    search, setSearch, sentinelRef,
+  } = usePaginatedProducts({ activeOnly: true, pageSize: PAGE_SIZE, scrollRootRef: gridRef });
 
   const subtotal = cart.reduce((sum, item) => sum + item.total, 0);
   const total = Math.max(0, subtotal - (discount || 0));
@@ -101,7 +98,20 @@ export default function PDV() {
 
     await base44.entities.Sale.create(saleData);
 
-    // Update stock
+    // Atualiza estoque no servidor e, em paralelo, otimista na lista paginada
+    setItems(prev => prev.map(p => {
+      const cartItem = cart.find(i => i.product_id === p.id);
+      if (!cartItem) return p;
+      return {
+        ...p,
+        variants: p.variants?.map(v =>
+          (v.size === cartItem.variant_size && v.color === cartItem.variant_color)
+            ? { ...v, stock: Math.max(0, (v.stock || 0) - cartItem.quantity) }
+            : v
+        ),
+      };
+    }));
+
     for (const item of cart) {
       const product = products.find(p => p.id === item.product_id);
       if (!product) continue;
@@ -114,8 +124,6 @@ export default function PDV() {
       await base44.entities.Product.update(product.id, { variants: updatedVariants });
     }
 
-    // Refresh products
-    base44.entities.Product.filter({ is_active: true }).then(setProducts);
     setLastSaleNum(saleNum);
     setCart([]);
     setDiscount(0);
@@ -136,8 +144,7 @@ export default function PDV() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              ref={searchRef}
-              placeholder="Buscar produto ou categoria..."
+              placeholder="Buscar produto ou categoria (servidor)..."
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="pl-9 h-11"
@@ -145,20 +152,38 @@ export default function PDV() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 content-start">
-          {filtered.map(product => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onAdd={addToCart}
-              selectedVariants={selectedVariants}
-              setSelectedVariants={setSelectedVariants}
-            />
-          ))}
-          {filtered.length === 0 && (
-            <div className="col-span-full text-center text-muted-foreground py-12 text-base">
-              Nenhum produto encontrado
+        <div ref={gridRef} className="flex-1 overflow-y-auto p-5">
+          {loadingProducts ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 content-start">
+                {products.map(product => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onAdd={addToCart}
+                    selectedVariants={selectedVariants}
+                    setSelectedVariants={setSelectedVariants}
+                  />
+                ))}
+                {products.length === 0 && (
+                  <div className="col-span-full text-center text-muted-foreground py-12 text-base">
+                    Nenhum produto encontrado
+                  </div>
+                )}
+              </div>
+
+              {/* Sentinel + status infinite scroll */}
+              <div ref={sentinelRef} className="h-px" />
+              <div className="py-4 text-center text-xs text-muted-foreground">
+                {loadingMore ? (
+                  <span className="flex items-center justify-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Carregando mais...</span>
+                ) : hasMore ? 'Role para carregar mais produtos' : products.length > 0 ? 'Fim do catálogo' : ''}
+              </div>
+            </>
           )}
         </div>
       </div>
