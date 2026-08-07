@@ -10,6 +10,15 @@
       "type": "string",
       "description": "N\u00famero da troca"
     },
+    "exchange_type": {
+      "type": "string",
+      "enum": [
+        "troca",
+        "credito"
+      ],
+      "default": "troca",
+      "description": "troca = troca por novas pe\u00e7as; credito = gera\u00e7\u00e3o de cr\u00e9dito da loja para o cliente"
+    },
     "original_sale_id": {
       "type": "string",
       "description": "ID da venda original"
@@ -52,7 +61,7 @@
     },
     "new_items": {
       "type": "array",
-      "description": "Pe\u00e7as entregues ao cliente",
+      "description": "Pe\u00e7as entregues ao cliente (vazio no modo cr\u00e9dito)",
       "items": {
         "type": "object",
         "properties": {
@@ -87,7 +96,7 @@
     },
     "difference": {
       "type": "number",
-      "description": "new_value - returned_value. Positivo = cliente paga a diferen\u00e7a; negativo = loja devolve"
+      "description": "new_value - returned_value. Positivo = cliente paga; negativo = loja devolve/credita"
     },
     "reason": {
       "type": "string",
@@ -128,7 +137,6 @@
   "required": [
     "original_sale_id",
     "returned_items",
-    "new_items",
     "status"
   ],
   "rls": {

@@ -11,16 +11,22 @@ export default async function(req: Request): Promise<Response> {
     const userName = user.full_name || user.email || '—';
 
     const {
-      original_sale_id, returned_items, new_items,
+      mode = 'troca', original_sale_id, returned_items, new_items,
       reason, payment_method, refund_method, notes,
       customer_id, customer_name, original_sale_number,
     } = body;
 
-    if (!original_sale_id || !Array.isArray(returned_items) || !Array.isArray(new_items)) {
-      return Response.json({ error: 'original_sale_id, returned_items e new_items são obrigatórios' }, { status: 400 });
+    if (!original_sale_id || !Array.isArray(returned_items)) {
+      return Response.json({ error: 'original_sale_id e returned_items são obrigatórios' }, { status: 400 });
     }
-    if (!returned_items.length || !new_items.length) {
-      return Response.json({ error: 'Informe ao menos uma peça devolvida e uma nova peça' }, { status: 400 });
+    if (!returned_items.length) {
+      return Response.json({ error: 'Informe ao menos uma peça devolvida' }, { status: 400 });
+    }
+    if (mode === 'troca' && (!Array.isArray(new_items) || !new_items.length)) {
+      return Response.json({ error: 'Informe ao menos uma nova peça para a troca' }, { status: 400 });
+    }
+    if (mode === 'credito' && !customer_id) {
+      return Response.json({ error: 'Selecione um cliente para creditar o saldo' }, { status: 400 });
     }
 
     const sale = await svc.entities.Sale.get(original_sale_id);
@@ -30,21 +36,27 @@ export default async function(req: Request): Promise<Response> {
     const sameVariant = (v, size, color) =>
       String(v?.size || '') === String(size || '') && String(v?.color || '') === String(color || '');
 
-    // Valida estoque das novas peças
-    for (const it of new_items) {
-      const prod = await svc.entities.Product.get(it.product_id);
-      if (!prod) return Response.json({ error: `Produto ${it.product_name} não encontrado` }, { status: 400 });
-      const v = (prod.variants || []).find(x => sameVariant(x, it.variant_size, it.variant_color));
-      if (!v || (v.stock || 0) < (it.quantity || 0)) {
-        return Response.json({
-          error: `Estoque insuficiente de ${it.product_name} (${it.variant_size || '-'}/${it.variant_color || '-'}): disponível ${v?.stock || 0}`
-        }, { status: 400 });
+    // Valida estoque das novas peças (modo troca)
+    if (mode === 'troca') {
+      for (const it of new_items) {
+        const prod = await svc.entities.Product.get(it.product_id);
+        if (!prod) return Response.json({ error: `Produto ${it.product_name} não encontrado` }, { status: 400 });
+        const v = (prod.variants || []).find(x => sameVariant(x, it.variant_size, it.variant_color));
+        if (!v || (v.stock || 0) < (it.quantity || 0)) {
+          return Response.json({
+            error: `Estoque insuficiente de ${it.product_name} (${it.variant_size || '-'}/${it.variant_color || '-'}): disponível ${v?.stock || 0}`
+          }, { status: 400 });
+        }
       }
     }
 
     const returned_value = +(returned_items.reduce((s, i) => s + (i.unit_price || 0) * (i.quantity || 0), 0)).toFixed(2);
-    const new_value = +(new_items.reduce((s, i) => s + (i.unit_price || 0) * (i.quantity || 0), 0)).toFixed(2);
-    const difference = +(new_value - returned_value).toFixed(2);
+    const new_value = mode === 'troca'
+      ? +(new_items.reduce((s, i) => s + (i.unit_price || 0) * (i.quantity || 0), 0)).toFixed(2)
+      : 0;
+    const difference = mode === 'credito'
+      ? +(-returned_value).toFixed(2)
+      : +(new_value - returned_value).toFixed(2);
 
     const number = `TROCA-${Date.now().toString().slice(-6)}`;
 
@@ -67,31 +79,45 @@ export default async function(req: Request): Promise<Response> {
       });
     }
 
-    // Novas peças -> saída de estoque
-    for (const it of new_items) {
-      const prod = await svc.entities.Product.get(it.product_id);
-      const variants = (prod.variants || []).map(v =>
-        sameVariant(v, it.variant_size, it.variant_color)
-          ? { ...v, stock: (v.stock || 0) - (it.quantity || 0) }
-          : v
-      );
-      await svc.entities.Product.update(prod.id, { variants });
-      await svc.entities.StockMovement.create({
-        store_id: storeId, product_id: prod.id, product_name: prod.name,
-        variant_size: it.variant_size, variant_color: it.variant_color,
-        type: 'saida', quantity: it.quantity,
-        reason: `Troca ${number} — saída`,
-      });
+    // Novas peças -> saída de estoque (modo troca)
+    if (mode === 'troca') {
+      for (const it of new_items) {
+        const prod = await svc.entities.Product.get(it.product_id);
+        const variants = (prod.variants || []).map(v =>
+          sameVariant(v, it.variant_size, it.variant_color)
+            ? { ...v, stock: (v.stock || 0) - (it.quantity || 0) }
+            : v
+        );
+        await svc.entities.Product.update(prod.id, { variants });
+        await svc.entities.StockMovement.create({
+          store_id: storeId, product_id: prod.id, product_name: prod.name,
+          variant_size: it.variant_size, variant_color: it.variant_color,
+          type: 'saida', quantity: it.quantity,
+          reason: `Troca ${number} — saída`,
+        });
+      }
+    }
+
+    // Crédito da loja (modo credito): incrementa saldo do cliente
+    if (mode === 'credito') {
+      const cust = await svc.entities.Customer.get(customer_id);
+      if (cust) {
+        await svc.entities.Customer.update(customer_id, {
+          credit_balance: (cust.credit_balance || 0) + returned_value,
+        });
+      }
     }
 
     const exchange = await svc.entities.Exchange.create({
       store_id: storeId,
       exchange_number: number,
+      exchange_type: mode,
       original_sale_id,
       original_sale_number: original_sale_number || sale.sale_number,
       customer_id: customer_id || sale.customer_id,
       customer_name: customer_name || sale.customer_name,
-      returned_items, new_items,
+      returned_items,
+      new_items: mode === 'troca' ? new_items : [],
       returned_value, new_value, difference,
       reason: reason || 'outros',
       payment_method: payment_method || null,
@@ -101,7 +127,7 @@ export default async function(req: Request): Promise<Response> {
       notes: notes || '',
     });
 
-    // Transação da diferença (receita se cliente paga, despesa se loja devolve)
+    // Transação da diferença (receita se cliente paga, despesa se loja devolve/credita)
     if (difference !== 0) {
       const month = new Date().toISOString().slice(0, 7);
       if (difference > 0) {
@@ -116,7 +142,7 @@ export default async function(req: Request): Promise<Response> {
       } else {
         await svc.entities.Transaction.create({
           store_id: storeId,
-          description: `Troca ${number} — diferença a devolver`,
+          description: mode === 'credito' ? `Crédito gerado ${number}` : `Troca ${number} — diferença a devolver`,
           amount: Math.abs(difference), type: 'despesa', category: 'Troca',
           payment_method: refund_method || 'Outros', status: 'pago', month,
           customer_name: customer_name || sale.customer_name,
@@ -124,7 +150,10 @@ export default async function(req: Request): Promise<Response> {
       }
     }
 
-    return Response.json({ ok: true, exchange_id: exchange.id, exchange_number: number, difference });
+    return Response.json({
+      ok: true, exchange_id: exchange.id, exchange_number: number,
+      difference, credit_balance: mode === 'credito' ? returned_value : undefined,
+    });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

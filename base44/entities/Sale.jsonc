@@ -79,7 +79,8 @@
       "enum": [
         "Dinheiro",
         "PIX",
-        "Cart\u00e3o"
+        "Cart\u00e3o",
+        "Cr\u00e9dito da loja"
       ],
       "description": "M\u00e9todo de pagamento"
     },

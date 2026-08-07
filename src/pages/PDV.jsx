@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Search, Plus, Minus, Trash2, ShoppingCart, Check, Loader2, ScanLine, AlertTriangle } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, ShoppingCart, Check, Loader2, ScanLine, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { usePaginatedProducts } from '@/hooks/usePaginatedProducts';
 import { effectivePrice, PRICE_TABLES } from '@/lib/priceTables';
 import { useStore } from '@/lib/StoreContext';
+import ExchangeDialog from '@/components/exchange/ExchangeDialog';
 
 const PAGE_SIZE = 40;
 const SALES_CHANNELS = ['Loja Física', 'WhatsApp', 'Instagram', 'Facebook', 'Site / E-commerce', 'Telefone', 'Indicação', 'Feira / Evento', 'Outros'];
@@ -34,6 +35,7 @@ export default function PDV() {
   const [salesChannel, setSalesChannel] = useState('');
   const [inadimplencia, setInadimplencia] = useState(null);
   const [cashReceived, setCashReceived] = useState('');
+  const [exchangeOpen, setExchangeOpen] = useState(false);
   const gridRef = useRef(null);
   const { store } = useStore();
 
@@ -43,7 +45,7 @@ export default function PDV() {
 
   const {
     items: products, setItems, loading: loadingProducts, loadingMore, hasMore,
-    search, setSearch, sentinelRef,
+    search, setSearch, sentinelRef, reload: reloadProducts,
   } = usePaginatedProducts({ activeOnly: true, pageSize: PAGE_SIZE, scrollRootRef: gridRef });
 
   const subtotal = cart.reduce((sum, item) => sum + item.total, 0);
@@ -122,6 +124,21 @@ export default function PDV() {
     if (!paymentMethod) { toast.error('Selecione o pagamento'); return; }
     if (!salesChannel) { toast.error('Selecione o canal de venda'); return; }
     if (!seller.trim()) { toast.error('Informe o vendedor'); return; }
+
+    // Crédito da loja: valida saldo do cliente antes de finalizar
+    if (paymentMethod === 'Crédito da loja') {
+      if (!customerName.trim()) { toast.error('Informe o cliente para usar crédito da loja'); return; }
+      try {
+        const custs = await base44.entities.Customer.filter({ name: customerName.trim() }, '-created_date', 5);
+        const cust = custs.find(c => c.name?.toLowerCase() === customerName.trim().toLowerCase());
+        if (!cust) { toast.error('Cliente não cadastrado'); return; }
+        if ((cust.credit_balance || 0) < total) {
+          toast.error(`Saldo de crédito insuficiente: R$ ${(cust.credit_balance || 0).toFixed(2).replace('.', ',')}`);
+          return;
+        }
+        return doFinalize(cust.id);
+      } catch { toast.error('Erro ao validar crédito da loja'); return; }
+    }
 
     // Verifica inadimplência: títulos vencidos do cliente em Contas a Receber
     if (customerName.trim()) {
@@ -222,6 +239,16 @@ export default function PDV() {
       await base44.entities.Product.update(product.id, { variants: updatedVariants });
     }
 
+    // Débito do crédito da loja (saldo do cliente)
+    if (paymentMethod === 'Crédito da loja' && customerId) {
+      try {
+        const cust = await base44.entities.Customer.get(customerId);
+        await base44.entities.Customer.update(customerId, {
+          credit_balance: Math.max(0, (cust.credit_balance || 0) - total),
+        });
+      } catch { /* ignore */ }
+    }
+
     setLastSaleNum(saleNum);
     setLastSaleInfo({ total, troco, cashReceived: cashReceivedNum, paymentMethod });
     setCart([]);
@@ -318,6 +345,9 @@ export default function PDV() {
           <span className="ml-auto bg-primary text-primary-foreground text-xs rounded-full px-2.5 py-1 font-sans font-semibold">
             {cart.length}
           </span>
+          <Button variant="outline" size="sm" onClick={() => setExchangeOpen(true)} className="h-8 gap-1.5">
+            <RefreshCw className="w-3.5 h-3.5" /> Troca
+          </Button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
@@ -383,7 +413,7 @@ export default function PDV() {
           <Select value={paymentMethod} onValueChange={setPaymentMethod}>
             <SelectTrigger className="h-10"><SelectValue placeholder="Forma de pagamento" /></SelectTrigger>
             <SelectContent>
-              {['Dinheiro', 'PIX', 'Cartão'].map(m => (
+              {['Dinheiro', 'PIX', 'Cartão', 'Crédito da loja'].map(m => (
                 <SelectItem key={m} value={m}>{m}</SelectItem>
               ))}
             </SelectContent>
@@ -489,6 +519,8 @@ export default function PDV() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ExchangeDialog open={exchangeOpen} onOpenChange={setExchangeOpen} onCompleted={reloadProducts} />
     </div>
   );
 }
