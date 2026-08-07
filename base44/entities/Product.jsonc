@@ -32,7 +32,25 @@
     },
     "price": {
       "type": "number",
-      "description": "Pre\u00e7o de venda"
+      "description": "Pre\u00e7o de venda base"
+    },
+    "price_tables": {
+      "type": "object",
+      "description": "Ajuste percentual por tabela de pre\u00e7o em rela\u00e7\u00e3o ao pre\u00e7o base",
+      "properties": {
+        "cliente_final": {
+          "type": "number",
+          "default": 0
+        },
+        "atacado": {
+          "type": "number",
+          "default": -10
+        },
+        "revenda": {
+          "type": "number",
+          "default": -5
+        }
+      }
     },
     "cost_price": {
       "type": "number",

@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
+import { PRICE_TABLES, PRICE_TABLE_DEFAULTS, effectivePrice, fmtPct } from '@/lib/priceTables';
 
 const CATEGORIES = ["Vestidos", "Blusas", "Calças", "Saias", "Shorts", "Casacos", "Acessórios", "Moda Praia", "Lingerie", "Outros"];
 const SIZES = ["PP", "P", "M", "G", "GG", "XG", "36", "38", "40", "42", "44", "46", "48", "Único"];
@@ -22,6 +23,7 @@ export default function ProductForm({ product, onClose }) {
     is_active: product?.is_active ?? true,
     is_featured: product?.is_featured ?? false,
     tags: product?.tags || [],
+    price_tables: product?.price_tables || { ...PRICE_TABLE_DEFAULTS },
   });
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -67,7 +69,16 @@ export default function ProductForm({ product, onClose }) {
       return;
     }
     setSaving(true);
-    const data = { ...form, price: Number(form.price), cost_price: Number(form.cost_price) || 0 };
+    const data = {
+      ...form,
+      price: Number(form.price),
+      cost_price: Number(form.cost_price) || 0,
+      price_tables: {
+        cliente_final: Number(form.price_tables.cliente_final) || 0,
+        atacado: Number(form.price_tables.atacado) || 0,
+        revenda: Number(form.price_tables.revenda) || 0,
+      },
+    };
     if (product) {
       await base44.entities.Product.update(product.id, data);
       toast.success('Produto atualizado');
@@ -112,6 +123,31 @@ export default function ProductForm({ product, onClose }) {
             className="w-full border border-input rounded-lg px-3 py-2 text-sm bg-background resize-none h-20"
             placeholder="Descrição para o catálogo online..."
           />
+        </div>
+      </div>
+
+      {/* Tabelas de Preço */}
+      <div>
+        <label className="text-sm font-medium mb-2 block">Tabelas de Preço (% sobre o preço base)</label>
+        <div className="grid grid-cols-3 gap-3">
+          {PRICE_TABLES.map(t => (
+            <div key={t.key} className="bg-muted/40 rounded-xl p-3">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-medium text-foreground">{t.label}</span>
+                <span className="text-xs text-muted-foreground">{fmtPct(form.price_tables[t.key] ?? PRICE_TABLE_DEFAULTS[t.key])}</span>
+              </div>
+              <Input
+                type="number"
+                value={form.price_tables[t.key]}
+                onChange={e => set('price_tables', { ...form.price_tables, [t.key]: e.target.value })}
+                placeholder="0"
+                className="h-9 text-sm"
+              />
+              <p className="text-xs text-primary font-medium mt-1.5 tabular-nums">
+                R$ {effectivePrice({ price: Number(form.price) || 0, price_tables: form.price_tables }, t.key).toFixed(2).replace('.', ',')}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
 

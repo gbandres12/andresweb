@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { usePaginatedProducts } from '@/hooks/usePaginatedProducts';
+import { effectivePrice, PRICE_TABLES } from '@/lib/priceTables';
 
 const PAGE_SIZE = 40;
 
@@ -22,6 +23,7 @@ export default function PDV() {
   const [lastSaleNum, setLastSaleNum] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedVariants, setSelectedVariants] = useState({});
+  const [priceTable, setPriceTable] = useState('cliente_final');
   const gridRef = useRef(null);
 
   const {
@@ -41,6 +43,7 @@ export default function PDV() {
     const key = `${product.id}-${variant.size}-${variant.color}`;
     const existing = cart.find(i => i.key === key);
     const stock = getProductStock(product, variant.size, variant.color);
+    const unit = effectivePrice(product, priceTable);
 
     if (existing) {
       if (existing.quantity >= stock) {
@@ -60,8 +63,8 @@ export default function PDV() {
         variant_size: variant.size,
         variant_color: variant.color,
         quantity: 1,
-        unit_price: product.price,
-        total: product.price,
+        unit_price: unit,
+        total: unit,
       }]);
     }
   };
@@ -89,6 +92,7 @@ export default function PDV() {
       subtotal,
       discount: discount || 0,
       total,
+      price_table: priceTable,
       payment_method: paymentMethod,
       customer_name: customerName,
       customer_phone: customerPhone,
@@ -150,6 +154,15 @@ export default function PDV() {
               className="pl-9 h-11"
             />
           </div>
+          <div className="flex items-center gap-2 mt-3">
+            <span className="text-xs text-muted-foreground font-medium">Tabela:</span>
+            <Select value={priceTable} onValueChange={setPriceTable}>
+              <SelectTrigger className="h-9 w-44 text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PRICE_TABLES.map(t => <SelectItem key={t.key} value={t.key}>{t.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div ref={gridRef} className="flex-1 overflow-y-auto p-5">
@@ -167,6 +180,7 @@ export default function PDV() {
                     onAdd={addToCart}
                     selectedVariants={selectedVariants}
                     setSelectedVariants={setSelectedVariants}
+                    priceTable={priceTable}
                   />
                 ))}
                 {products.length === 0 && (
@@ -245,7 +259,7 @@ export default function PDV() {
           <Select value={paymentMethod} onValueChange={setPaymentMethod}>
             <SelectTrigger className="h-10"><SelectValue placeholder="Forma de pagamento" /></SelectTrigger>
             <SelectContent>
-              {['Dinheiro', 'Cartão de Crédito', 'Cartão de Débito', 'PIX', 'Misto'].map(m => (
+              {['Dinheiro', 'PIX', 'Cartão'].map(m => (
                 <SelectItem key={m} value={m}>{m}</SelectItem>
               ))}
             </SelectContent>
@@ -295,7 +309,7 @@ export default function PDV() {
   );
 }
 
-function ProductCard({ product, onAdd, selectedVariants, setSelectedVariants }) {
+function ProductCard({ product, onAdd, selectedVariants, setSelectedVariants, priceTable }) {
   const sizes = [...new Set(product.variants?.map(v => v.size) || [])];
   const colors = [...new Set(product.variants?.map(v => v.color) || [])];
   const key = product.id;
@@ -323,7 +337,7 @@ function ProductCard({ product, onAdd, selectedVariants, setSelectedVariants }) 
       <div>
         <p className="text-sm font-medium truncate text-foreground">{product.name}</p>
         <p className="text-xs text-muted-foreground">{product.category}</p>
-        <p className="text-base font-serif font-semibold text-primary mt-0.5">R$ {product.price?.toFixed(2).replace('.', ',')}</p>
+        <p className="text-base font-serif font-semibold text-primary mt-0.5">R$ {effectivePrice(product, priceTable).toFixed(2).replace('.', ',')}</p>
       </div>
 
       {sizes.length > 1 && (
