@@ -102,7 +102,7 @@ export default function MinhasLojas() {
                       Ativar
                     </Button>
                   )}
-                  <Button variant="outline" size="icon" onClick={() => openEdit(s)}>
+                  <Button variant="outline" size="icon" onClick={() => navigate(`/lojas/${s.id}/configurar`)} title="Configurar loja">
                     <Pencil className="w-4 h-4" />
                   </Button>
                 </div>
