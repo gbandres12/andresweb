@@ -21,6 +21,7 @@ import EntradaInteligente from '@/pages/EntradaInteligente';
 import ImportarNFe from '@/pages/ImportarNFe';
 import MinhasLojas from '@/pages/MinhasLojas';
 import PesquisaGlobal from '@/pages/PesquisaGlobal';
+import Relatorios from '@/pages/Relatorios';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -71,6 +72,7 @@ const AuthenticatedApp = () => {
         <Route path="/importar-nfe" element={<ImportarNFe />} />
         <Route path="/lojas" element={<MinhasLojas />} />
         <Route path="/pesquisa-global" element={<PesquisaGlobal />} />
+        <Route path="/relatorios" element={<Relatorios />} />
       </Route>
 
       <Route path="*" element={<PageNotFound />} />

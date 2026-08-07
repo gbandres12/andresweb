@@ -23,12 +23,14 @@ export default function PDV() {
   const [notes, setNotes] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [lastSaleNum, setLastSaleNum] = useState('');
+  const [lastSaleInfo, setLastSaleInfo] = useState({ total: 0, troco: 0, cashReceived: 0, paymentMethod: '' });
   const [loading, setLoading] = useState(false);
   const [selectedVariants, setSelectedVariants] = useState({});
   const [priceTable, setPriceTable] = useState('cliente_final');
   const [scan, setScan] = useState('');
   const [seller, setSeller] = useState('');
   const [inadimplencia, setInadimplencia] = useState(null);
+  const [cashReceived, setCashReceived] = useState('');
   const gridRef = useRef(null);
   const { store } = useStore();
 
@@ -43,6 +45,8 @@ export default function PDV() {
 
   const subtotal = cart.reduce((sum, item) => sum + item.total, 0);
   const total = Math.max(0, subtotal - (discount || 0));
+  const cashReceivedNum = Number(cashReceived) || 0;
+  const troco = paymentMethod === 'Dinheiro' && cashReceivedNum > 0 ? Math.max(0, cashReceivedNum - total) : 0;
 
   const getProductStock = (product, size, color) => {
     const v = product.variants?.find(v => v.size === size && v.color === color);
@@ -154,6 +158,9 @@ export default function PDV() {
       total,
       price_table: priceTable,
       payment_method: paymentMethod,
+      payment_details: paymentMethod === 'Dinheiro' && cashReceivedNum > 0
+        ? `Recebido: R$ ${cashReceivedNum.toFixed(2)} | Troco: R$ ${troco.toFixed(2)}`
+        : '',
       customer_id: customerId,
       customer_name: customerName,
       customer_phone: customerPhone,
@@ -209,9 +216,11 @@ export default function PDV() {
     }
 
     setLastSaleNum(saleNum);
+    setLastSaleInfo({ total, troco, cashReceived: cashReceivedNum, paymentMethod });
     setCart([]);
     setDiscount(0);
     setPaymentMethod('');
+    setCashReceived('');
     setCustomerName('');
     setCustomerPhone('');
     setNotes('');
@@ -356,6 +365,31 @@ export default function PDV() {
             </SelectContent>
           </Select>
 
+          {paymentMethod === 'Dinheiro' && (
+            <div className="space-y-2">
+              <Input
+                type="number"
+                placeholder="Valor recebido em dinheiro (R$)"
+                value={cashReceived}
+                onChange={e => setCashReceived(e.target.value)}
+                className="h-10"
+              />
+              {cashReceivedNum > 0 && (
+                <div className={cn(
+                  "flex justify-between text-sm rounded-lg px-3 py-2",
+                  cashReceivedNum >= total
+                    ? "bg-emerald-50 text-emerald-700"
+                    : "bg-red-50 text-red-700"
+                )}>
+                  <span>{cashReceivedNum >= total ? 'Troco para o cliente' : 'Valor recebido insuficiente'}</span>
+                  <span className="font-semibold tabular-nums">
+                    R$ {Math.abs(cashReceivedNum - total).toFixed(2).replace('.', ',')}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="bg-muted rounded-xl p-4 space-y-1.5">
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>Subtotal</span><span>R$ {subtotal.toFixed(2).replace('.', ',')}</span>
@@ -390,7 +424,13 @@ export default function PDV() {
             <div>
               <h2 className="font-serif text-2xl font-semibold text-foreground">Venda Realizada!</h2>
               <p className="text-muted-foreground text-sm mt-1">#{lastSaleNum}</p>
-              <p className="text-xl font-serif font-semibold text-primary mt-2">R$ {total.toFixed(2).replace('.', ',')}</p>
+              <p className="text-xl font-serif font-semibold text-primary mt-2">R$ {lastSaleInfo.total.toFixed(2).replace('.', ',')}</p>
+              {lastSaleInfo.paymentMethod === 'Dinheiro' && lastSaleInfo.cashReceived > 0 && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  Recebido: R$ {lastSaleInfo.cashReceived.toFixed(2).replace('.', ',')} · Troco:{' '}
+                  <strong className="text-emerald-700">R$ {lastSaleInfo.troco.toFixed(2).replace('.', ',')}</strong>
+                </p>
+              )}
             </div>
             <Button onClick={() => setShowSuccess(false)} className="w-full h-11">Nova Venda</Button>
           </div>

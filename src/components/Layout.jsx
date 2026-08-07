@@ -3,7 +3,7 @@ import { useState } from 'react';
 import {
   LayoutDashboard, ShoppingCart, Package, BarChart3,
   Users, Menu, X, Store as StoreIcon, ChevronRight, LogOut, Wallet, Calculator,
-  Building2, ScanLine, FileText, Check, ChevronsUpDown, Plus, Settings, Globe
+  Building2, ScanLine, FileText, Check, ChevronsUpDown, Plus, Settings, Globe, PieChart
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { cn } from '@/lib/utils';
@@ -27,6 +27,7 @@ const navItems = [
   { path: '/calculadora', label: 'Calculadora', icon: Calculator },
   { path: '/lojas', label: 'Minhas Lojas', icon: Building2 },
   { path: '/pesquisa-global', label: 'Pesquisa Global', icon: Globe },
+  { path: '/relatorios', label: 'Relatórios', icon: PieChart },
 ];
 
 export default function Layout() {
