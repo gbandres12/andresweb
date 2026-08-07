@@ -26,6 +26,14 @@
       "type": "string",
       "description": "Categoria"
     },
+    "customer_id": {
+      "type": "string",
+      "description": "Cliente vinculado (Contas a Receber)"
+    },
+    "customer_name": {
+      "type": "string",
+      "description": "Nome do cliente (denormalizado)"
+    },
     "payment_method": {
       "type": "string",
       "enum": [

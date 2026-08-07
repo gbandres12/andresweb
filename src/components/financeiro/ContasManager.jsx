@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -16,6 +16,11 @@ export default function ContasManager({ transactions, onRefresh }) {
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState('all'); // all | receivable | payable | pending
   const [formType, setFormType] = useState('despesa');
+  const [customers, setCustomers] = useState([]);
+
+  useEffect(() => {
+    base44.entities.Customer.list('-created_date', 200).then(setCustomers).catch(() => {});
+  }, []);
 
   const filtered = useMemo(() => transactions.filter(t => {
     if (filter === 'receivable') return t.type === 'receita';
@@ -115,6 +120,7 @@ export default function ContasManager({ transactions, onRefresh }) {
                   <td className="px-5 py-3">
                     <p className="text-sm font-medium">{t.description}</p>
                     <p className="text-xs text-muted-foreground">{t.type === 'receita' ? '↑ Receita' : '↓ Despesa'} · {t.category || '—'}</p>
+                    {t.customer_name && <p className="text-xs text-primary/80">Cliente: {t.customer_name}</p>}
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
                     {t.due_date ? (
@@ -164,19 +170,21 @@ export default function ContasManager({ transactions, onRefresh }) {
               {formType === 'receita' ? 'Nova Conta a Receber' : 'Nova Conta a Pagar'}
             </DialogTitle>
           </DialogHeader>
-          <TransactionForm type={formType} onClose={() => { setShowForm(false); onRefresh(); }} />
+          <TransactionForm type={formType} customers={customers} onClose={() => { setShowForm(false); onRefresh(); }} />
         </DialogContent>
       </Dialog>
     </div>
   );
 }
 
-function TransactionForm({ type, onClose }) {
+function TransactionForm({ type, customers, onClose }) {
   const [form, setForm] = useState({
     description: '',
     amount: '',
     type,
     category: '',
+    customer_id: '',
+    customer_name: '',
     payment_method: 'PIX',
     status: 'pendente',
     due_date: '',
@@ -237,6 +245,24 @@ function TransactionForm({ type, onClose }) {
           </SelectContent>
         </Select>
       </div>
+      {type === 'receita' && (
+        <div>
+          <label className="text-sm font-medium mb-1.5 block">Cliente (para controle de inadimplência)</label>
+          <Select
+            value={form.customer_id}
+            onValueChange={v => {
+              const c = (customers || []).find(c => c.id === v);
+              set('customer_id', v);
+              set('customer_name', c ? c.name : '');
+            }}
+          >
+            <SelectTrigger><SelectValue placeholder="Selecione o cliente (opcional)" /></SelectTrigger>
+            <SelectContent>
+              {(customers || []).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       <div>
         <label className="text-sm font-medium mb-1.5 block">Observações</label>
         <Input value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="Opcional..." />

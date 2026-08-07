@@ -72,6 +72,10 @@
       "type": "string",
       "description": "Detalhes do pagamento"
     },
+    "customer_id": {
+      "type": "string",
+      "description": "Cliente vinculado"
+    },
     "customer_name": {
       "type": "string"
     },

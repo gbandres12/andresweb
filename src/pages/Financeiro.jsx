@@ -8,6 +8,8 @@ import FluxoCaixa from '@/components/financeiro/FluxoCaixa';
 import ContasManager from '@/components/financeiro/ContasManager';
 import DespesasManager from '@/components/financeiro/DespesasManager';
 import CaixaManager from '@/components/financeiro/CaixaManager';
+import ConciliacaoManager from '@/components/financeiro/ConciliacaoManager';
+import ComissoesManager from '@/components/financeiro/ComissoesManager';
 
 export default function Financeiro() {
   const [sales, setSales] = useState([]);
@@ -51,6 +53,8 @@ export default function Financeiro() {
           <TabsTrigger value="contas">Contas</TabsTrigger>
           <TabsTrigger value="despesas">Despesas</TabsTrigger>
           <TabsTrigger value="caixa">Caixa</TabsTrigger>
+          <TabsTrigger value="conciliacao">Conciliação</TabsTrigger>
+          <TabsTrigger value="comissoes">Comissões</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard">
@@ -83,6 +87,14 @@ export default function Financeiro() {
 
         <TabsContent value="caixa">
           <CaixaManager sales={sales} />
+        </TabsContent>
+
+        <TabsContent value="conciliacao">
+          <ConciliacaoManager transactions={transactions} onRefresh={loadAll} />
+        </TabsContent>
+
+        <TabsContent value="comissoes">
+          <ComissoesManager />
         </TabsContent>
         </Tabs>
     </div>

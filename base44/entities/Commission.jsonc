@@ -1,0 +1,110 @@
+{
+  "name": "Commission",
+  "type": "object",
+  "properties": {
+    "store_id": {
+      "type": "string",
+      "description": "ID da loja (multi-tenant)"
+    },
+    "sale_id": {
+      "type": "string",
+      "description": "ID da venda que gerou a comiss\u00e3o"
+    },
+    "sale_number": {
+      "type": "string"
+    },
+    "seller_name": {
+      "type": "string",
+      "description": "Vendedor"
+    },
+    "base_type": {
+      "type": "string",
+      "enum": [
+        "faturamento",
+        "liquidacao"
+      ],
+      "description": "Base de c\u00e1lculo: faturamento (venda) ou liquida\u00e7\u00e3o (pagamento efetivo)"
+    },
+    "base_amount": {
+      "type": "number",
+      "description": "Valor base da comiss\u00e3o"
+    },
+    "rate": {
+      "type": "number",
+      "description": "Percentual da comiss\u00e3o"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Valor da comiss\u00e3o"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendente",
+        "paga"
+      ],
+      "default": "pendente"
+    },
+    "paid_date": {
+      "type": "string",
+      "format": "date"
+    }
+  },
+  "required": [
+    "seller_name",
+    "base_amount",
+    "rate",
+    "amount",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.store_id": "{{user.data.store_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "data.store_id": "{{user.data.store_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.store_id": "{{user.data.store_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "data.store_id": "{{user.data.store_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

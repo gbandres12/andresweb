@@ -1,14 +1,16 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Search, Plus, Minus, Trash2, ShoppingCart, Check, Loader2, ScanLine } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, ShoppingCart, Check, Loader2, ScanLine, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { usePaginatedProducts } from '@/hooks/usePaginatedProducts';
 import { effectivePrice, PRICE_TABLES } from '@/lib/priceTables';
+import { useStore } from '@/lib/StoreContext';
 
 const PAGE_SIZE = 40;
 
@@ -25,7 +27,14 @@ export default function PDV() {
   const [selectedVariants, setSelectedVariants] = useState({});
   const [priceTable, setPriceTable] = useState('cliente_final');
   const [scan, setScan] = useState('');
+  const [seller, setSeller] = useState('');
+  const [inadimplencia, setInadimplencia] = useState(null);
   const gridRef = useRef(null);
+  const { store } = useStore();
+
+  useEffect(() => {
+    base44.auth.me().then(u => setSeller(u?.full_name || '')).catch(() => {});
+  }, []);
 
   const {
     items: products, setItems, loading: loadingProducts, loadingMore, hasMore,
@@ -104,6 +113,36 @@ export default function PDV() {
   const finalizeSale = async () => {
     if (!cart.length) { toast.error('Carrinho vazio'); return; }
     if (!paymentMethod) { toast.error('Selecione o pagamento'); return; }
+
+    // Verifica inadimplência: títulos vencidos do cliente em Contas a Receber
+    if (customerName.trim()) {
+      try {
+        const custs = await base44.entities.Customer.filter({ name: customerName.trim() }, '-created_date', 5);
+        const cust = custs.find(c => c.name?.toLowerCase() === customerName.trim().toLowerCase());
+        if (cust) {
+          const today = format(new Date(), 'yyyy-MM-dd');
+          const txns = await base44.entities.Transaction.filter(
+            { customer_id: cust.id, type: 'receita', status: 'pendente' }, '-due_date', 200
+          );
+          const overdue = txns.filter(t => t.due_date && t.due_date < today);
+          if (overdue.length) {
+            const totalOver = overdue.reduce((s, t) => s + (t.amount || 0), 0);
+            setInadimplencia({
+              amount: totalOver,
+              count: overdue.length,
+              customerId: cust.id,
+              blocked: !!store?.settings?.bloquear_inadimplente,
+            });
+            return;
+          }
+        }
+      } catch { /* ignore */ }
+    }
+
+    doFinalize();
+  };
+
+  const doFinalize = async (customerId = null) => {
     setLoading(true);
 
     const saleNum = `VND-${Date.now().toString().slice(-6)}`;
@@ -115,13 +154,33 @@ export default function PDV() {
       total,
       price_table: priceTable,
       payment_method: paymentMethod,
+      customer_id: customerId,
       customer_name: customerName,
       customer_phone: customerPhone,
+      seller_name: seller,
       notes,
       status: 'concluida',
     };
 
-    await base44.entities.Sale.create(saleData);
+    const created = await base44.entities.Sale.create(saleData);
+
+    // Comissão automática por vendedor (base: faturamento ou liquidação)
+    try {
+      const cfg = store?.settings?.commission || {};
+      const rate = Number(cfg.sellers?.[seller] ?? cfg.default_rate ?? 0);
+      if (rate > 0 && seller) {
+        await base44.entities.Commission.create({
+          sale_id: created.id,
+          sale_number: saleNum,
+          seller_name: seller,
+          base_type: cfg.base || 'faturamento',
+          base_amount: total,
+          rate,
+          amount: (total * rate) / 100,
+          status: 'pendente',
+        });
+      }
+    } catch { /* ignore */ }
 
     // Atualiza estoque no servidor e, em paralelo, otimista na lista paginada
     setItems(prev => prev.map(p => {
@@ -278,6 +337,7 @@ export default function PDV() {
 
         {/* Summary & checkout */}
         <div className="p-5 border-t border-border space-y-3">
+          <Input placeholder="Vendedor" value={seller} onChange={e => setSeller(e.target.value)} className="h-10" />
           <Input placeholder="Nome do cliente" value={customerName} onChange={e => setCustomerName(e.target.value)} className="h-10" />
           <Input placeholder="Telefone (opcional)" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} className="h-10" />
           <Input
@@ -333,6 +393,35 @@ export default function PDV() {
               <p className="text-xl font-serif font-semibold text-primary mt-2">R$ {total.toFixed(2).replace('.', ',')}</p>
             </div>
             <Button onClick={() => setShowSuccess(false)} className="w-full h-11">Nova Venda</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Alerta de inadimplência */}
+      <Dialog open={!!inadimplencia} onOpenChange={v => { if (!v) setInadimplencia(null); }}>
+        <DialogContent className="sm:max-w-sm text-center">
+          <div className="flex flex-col items-center gap-4 py-4">
+            <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center">
+              <AlertTriangle className="w-8 h-8 text-red-600" />
+            </div>
+            <div>
+              <h2 className="font-serif text-xl font-semibold text-foreground">Cliente Inadimplente</h2>
+              <p className="text-muted-foreground text-sm mt-1">
+                Este cliente possui <strong className="text-destructive">{inadimplencia?.count} título(s)</strong> vencido(s)
+                somando <strong className="text-destructive">R$ {(inadimplencia?.amount || 0).toFixed(2).replace('.', ',')}</strong> em Contas a Receber.
+              </p>
+            </div>
+            <div className="flex gap-2 w-full">
+              <Button variant="outline" onClick={() => setInadimplencia(null)} className="flex-1">Cancelar Venda</Button>
+              <Button
+                variant="destructive"
+                disabled={inadimplencia?.blocked}
+                onClick={() => { const c = inadimplencia; setInadimplencia(null); doFinalize(c?.customerId || null); }}
+                className="flex-1"
+              >
+                {inadimplencia?.blocked ? 'Venda Bloqueada' : 'Continuar Mesmo Assim'}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
