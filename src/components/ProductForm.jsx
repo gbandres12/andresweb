@@ -3,15 +3,17 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Upload } from 'lucide-react';
+import { Plus, Trash2, Upload, Sparkles, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PRICE_TABLES, PRICE_TABLE_DEFAULTS, effectivePrice, fmtPct } from '@/lib/priceTables';
+import { useStore } from '@/lib/StoreContext';
 
 const CATEGORIES = ["Vestidos", "Blusas", "Calças", "Saias", "Shorts", "Casacos", "Acessórios", "Moda Praia", "Lingerie", "Outros"];
 const SIZES = ["PP", "P", "M", "G", "GG", "XG", "36", "38", "40", "42", "44", "46", "48", "Único"];
 const COLORS = ["Preto", "Branco", "Bege", "Rosa", "Nude", "Vermelho", "Azul", "Verde", "Amarelo", "Laranja", "Roxo", "Cinza", "Marrom", "Estampado", "Outro"];
 
 export default function ProductForm({ product, onClose }) {
+  const { store } = useStore();
   const [form, setForm] = useState({
     name: product?.name || '',
     description: product?.description || '',
@@ -23,6 +25,7 @@ export default function ProductForm({ product, onClose }) {
     is_active: product?.is_active ?? true,
     is_featured: product?.is_featured ?? false,
     gtin: product?.gtin || '',
+    sku: product?.sku || '',
     tags: product?.tags || [],
     price_tables: product?.price_tables || { ...PRICE_TABLE_DEFAULTS },
   });
@@ -36,6 +39,29 @@ export default function ProductForm({ product, onClose }) {
     // Gera um código interno de 12 dígitos (prefixo 2 = uso interno) para etiqueta
     const code = '2' + Date.now().toString().slice(-11);
     set('gtin', code);
+  };
+
+  const [suggestingSku, setSuggestingSku] = useState(false);
+  const suggestSku = async () => {
+    setSuggestingSku(true);
+    try {
+      const prompt = `Você gera códigos SKU para produtos de uma loja de roupas.
+Loja: ${store?.name || ''}${store?.slug ? ' (slug: ' + store.slug + ')' : ''}.
+Produto: ${form.name || '(sem nome)'}.
+Categoria: ${form.category || '(sem categoria)'}.
+Gere um SKU curto, até 12 caracteres, sem espaços, combinando iniciais da loja + categoria + número sequencial. Responda apenas o SKU, em maiúsculas, sem aspas.`;
+      const res = await base44.integrations.Core.InvokeLLM({
+        prompt,
+        response_json_schema: { type: 'object', properties: { sku: { type: 'string' } } },
+      });
+      const sku = (res?.sku || '').trim().toUpperCase().replace(/[^A-Z0-9-]/g, '');
+      if (sku) set('sku', sku);
+      else toast.error('Não foi possível gerar o SKU');
+    } catch {
+      toast.error('Erro ao gerar SKU');
+    } finally {
+      setSuggestingSku(false);
+    }
   };
 
   const addVariant = () => {
@@ -131,6 +157,20 @@ export default function ProductForm({ product, onClose }) {
               placeholder="Leia com o scanner USB ou digite o código"
             />
             <Button type="button" variant="outline" onClick={generateGtin}>Gerar</Button>
+          </div>
+        </div>
+        <div className="col-span-2">
+          <label className="text-sm font-medium mb-1.5 block">SKU (Código Interno)</label>
+          <div className="flex gap-2">
+            <Input
+              value={form.sku}
+              onChange={e => set('sku', e.target.value.toUpperCase())}
+              placeholder="Ex: AND-VEST-001"
+            />
+            <Button type="button" variant="outline" onClick={suggestSku} disabled={suggestingSku}>
+              {suggestingSku ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Sparkles className="w-4 h-4 mr-1.5" />}
+              Sugerir IA
+            </Button>
           </div>
         </div>
         <div className="col-span-2">

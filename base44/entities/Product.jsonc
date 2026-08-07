@@ -56,6 +56,10 @@
       "type": "number",
       "description": "Pre\u00e7o de custo"
     },
+    "sku": {
+      "type": "string",
+      "description": "SKU / c\u00f3digo interno do produto"
+    },
     "gtin": {
       "type": "string",
       "description": "C\u00f3digo de barras GTIN/EAN do produto (para leitores USB e etiquetas)"
