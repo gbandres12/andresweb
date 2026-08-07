@@ -52,6 +52,13 @@
         }
       }
     },
+    "active_tables": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tabelas de pre\u00e7o nas quais o produto participa (vazio = participa de todas)"
+    },
     "cost_price": {
       "type": "number",
       "description": "Pre\u00e7o de custo"

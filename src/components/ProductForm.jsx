@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, Upload, Sparkles, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { PRICE_TABLES, PRICE_TABLE_DEFAULTS, effectivePrice, fmtPct } from '@/lib/priceTables';
+import { PRICE_TABLE_DEFAULTS, getStoreTables, effectivePrice, fmtPct } from '@/lib/priceTables';
+import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/StoreContext';
 
 const CATEGORIES = ["Vestidos", "Blusas", "Calças", "Saias", "Shorts", "Casacos", "Acessórios", "Moda Praia", "Lingerie", "Outros"];
@@ -14,6 +15,7 @@ const COLORS = ["Preto", "Branco", "Bege", "Rosa", "Nude", "Vermelho", "Azul", "
 
 export default function ProductForm({ product, onClose }) {
   const { store } = useStore();
+  const tables = getStoreTables(store);
   const [form, setForm] = useState({
     name: product?.name || '',
     description: product?.description || '',
@@ -28,6 +30,7 @@ export default function ProductForm({ product, onClose }) {
     sku: product?.sku || '',
     tags: product?.tags || [],
     price_tables: product?.price_tables || { ...PRICE_TABLE_DEFAULTS },
+    active_tables: product?.active_tables || [],
   });
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -111,6 +114,7 @@ Gere um SKU curto, até 12 caracteres, sem espaços, combinando iniciais da loja
         atacado: Number(form.price_tables.atacado) || 0,
         revenda: Number(form.price_tables.revenda) || 0,
       },
+      active_tables: form.active_tables,
     };
     if (product) {
       await base44.entities.Product.update(product.id, data);
@@ -184,28 +188,39 @@ Gere um SKU curto, até 12 caracteres, sem espaços, combinando iniciais da loja
         </div>
       </div>
 
-      {/* Tabelas de Preço */}
+      {/* Tabelas participantes */}
       <div>
-        <label className="text-sm font-medium mb-2 block">Tabelas de Preço (% sobre o preço base)</label>
-        <div className="grid grid-cols-3 gap-3">
-          {PRICE_TABLES.map(t => (
-            <div key={t.key} className="bg-muted/40 rounded-xl p-3">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-medium text-foreground">{t.label}</span>
-                <span className="text-xs text-muted-foreground">{fmtPct(form.price_tables[t.key] ?? PRICE_TABLE_DEFAULTS[t.key])}</span>
+        <label className="text-sm font-medium mb-2 block">Tabelas de Preço (participa / ajuste %)</label>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {tables.map(t => {
+            const active = !form.active_tables.length || form.active_tables.includes(t.key);
+            return (
+              <div key={t.key} className={cn("rounded-xl p-3 border", active ? "bg-muted/40 border-border" : "bg-background border-dashed border-border opacity-60")}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input type="checkbox" checked={active} onChange={e => {
+                      const next = e.target.checked
+                        ? Array.from(new Set([...(form.active_tables || []), t.key]))
+                        : (form.active_tables || []).filter(k => k !== t.key);
+                      set('active_tables', next);
+                    }} className="rounded" />
+                    <span className="text-xs font-medium text-foreground">{t.name}</span>
+                  </label>
+                  <span className="text-[10px] text-muted-foreground">{t.payment_method}</span>
+                </div>
+                <Input
+                  type="number"
+                  value={form.price_tables[t.key] ?? t.adjustment}
+                  onChange={e => set('price_tables', { ...form.price_tables, [t.key]: e.target.value })}
+                  placeholder={String(t.adjustment)}
+                  className="h-9 text-sm"
+                />
+                <p className="text-xs text-primary font-medium mt-1.5 tabular-nums">
+                  R$ {effectivePrice({ price: Number(form.price) || 0, price_tables: form.price_tables, active_tables: form.active_tables }, t.key, tables).toFixed(2).replace('.', ',')}
+                </p>
               </div>
-              <Input
-                type="number"
-                value={form.price_tables[t.key]}
-                onChange={e => set('price_tables', { ...form.price_tables, [t.key]: e.target.value })}
-                placeholder="0"
-                className="h-9 text-sm"
-              />
-              <p className="text-xs text-primary font-medium mt-1.5 tabular-nums">
-                R$ {effectivePrice({ price: Number(form.price) || 0, price_tables: form.price_tables }, t.key).toFixed(2).replace('.', ',')}
-              </p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

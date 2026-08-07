@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { usePaginatedProducts } from '@/hooks/usePaginatedProducts';
-import { effectivePrice, PRICE_TABLES } from '@/lib/priceTables';
+import { effectivePrice, getStoreTables } from '@/lib/priceTables';
 import { useStore } from '@/lib/StoreContext';
 import ExchangeDialog from '@/components/exchange/ExchangeDialog';
 import CategoryReference from '@/components/pdv/CategoryReference';
@@ -43,6 +43,7 @@ export default function PDV() {
   const [consignmentDueDate, setConsignationDueDate] = useState('');
   const gridRef = useRef(null);
   const { store } = useStore();
+  const tables = getStoreTables(store);
 
   useEffect(() => {
     base44.auth.me().then(u => setSeller(u?.full_name || '')).catch(() => {});
@@ -70,7 +71,7 @@ export default function PDV() {
     const key = `${product.id}-${variant.size}-${variant.color}`;
     const existing = cart.find(i => i.key === key);
     const stock = getProductStock(product, variant.size, variant.color);
-    const unit = effectivePrice(product, priceTable);
+    const unit = effectivePrice(product, priceTable, tables);
 
     if (existing) {
       if (existing.quantity >= stock) {
@@ -314,7 +315,7 @@ export default function PDV() {
             <Select value={priceTable} onValueChange={setPriceTable}>
               <SelectTrigger className="h-9 w-44 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {PRICE_TABLES.map(t => <SelectItem key={t.key} value={t.key}>{t.label}</SelectItem>)}
+                {tables.map(t => <SelectItem key={t.key} value={t.key}>{t.name}</SelectItem>)}
               </SelectContent>
             </Select>
             <div className="ml-auto"><CategoryReference /></div>
@@ -337,6 +338,7 @@ export default function PDV() {
                     selectedVariants={selectedVariants}
                     setSelectedVariants={setSelectedVariants}
                     priceTable={priceTable}
+                    tables={tables}
                   />
                 ))}
                 {products.length === 0 && (
@@ -572,7 +574,7 @@ export default function PDV() {
   );
 }
 
-function ProductCard({ product, onAdd, selectedVariants, setSelectedVariants, priceTable }) {
+function ProductCard({ product, onAdd, selectedVariants, setSelectedVariants, priceTable, tables }) {
   const sizes = [...new Set(product.variants?.map(v => v.size) || [])];
   const colors = [...new Set(product.variants?.map(v => v.color) || [])];
   const key = product.id;
@@ -600,7 +602,7 @@ function ProductCard({ product, onAdd, selectedVariants, setSelectedVariants, pr
       <div>
         <p className="text-sm font-medium truncate text-foreground">{product.name}</p>
         <p className="text-xs text-muted-foreground">{product.category}</p>
-        <p className="text-base font-serif font-semibold text-primary mt-0.5">R$ {effectivePrice(product, priceTable).toFixed(2).replace('.', ',')}</p>
+        <p className="text-base font-serif font-semibold text-primary mt-0.5">R$ {effectivePrice(product, priceTable, tables).toFixed(2).replace('.', ',')}</p>
       </div>
 
       {sizes.length > 1 && (

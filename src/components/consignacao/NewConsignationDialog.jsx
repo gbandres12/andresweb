@@ -5,24 +5,34 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash2, Plus, Search, Loader2 } from 'lucide-react';
+import { Trash2, Plus, Search, Loader2, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
+import { getStoreTables, effectivePrice } from '@/lib/priceTables';
 
 const variantKey = (v) => `${v.size || ''}|${v.color || ''}`;
 
 export default function NewConsignationDialog({ open, onOpenChange, onCreated }) {
   const { store } = useStore();
+  const tables = getStoreTables(store);
   const [products, setProducts] = useState([]);
+  const [customers, setCustomers] = useState([]);
   const [search, setSearch] = useState('');
-  const [consignee, setConsignee] = useState('');
+  const [selectedCustomerId, setSelectedCustomerId] = useState('');
+  const [consigneeName, setConsigneeName] = useState('');
+  const [showNewCust, setShowNewCust] = useState(false);
+  const [newCustName, setNewCustName] = useState('');
+  const [newCustPhone, setNewCustPhone] = useState('');
+  const [priceTable, setPriceTable] = useState(tables[0]?.key || 'cliente_final');
   const [dueDate, setDueDate] = useState('');
   const [items, setItems] = useState([]);
   const [pick, setPick] = useState({});
   const [saving, setSaving] = useState(false);
+  const [addingCust, setAddingCust] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     base44.entities.Product.list('-created_date', 100).then(setProducts).catch(() => {});
+    base44.entities.Customer.list('-created_date', 200).then(setCustomers).catch(() => {});
   }, [open]);
 
   const filtered = products.filter(p => p.name?.toLowerCase().includes(search.toLowerCase())).slice(0, 8);
@@ -37,20 +47,36 @@ export default function NewConsignationDialog({ open, onOpenChange, onCreated })
     }
     const qty = Number(ps.qty || 1);
     if (!qty || qty < 1) { toast.error('Quantidade inválida'); return; }
+    const unit = effectivePrice(p, priceTable, tables);
     const existing = items.find(i => i.product_id === p.id && i.variant_size === size && i.variant_color === color);
     if (existing) {
-      setItems(items.map(i => i === existing ? { ...i, quantity: i.quantity + qty } : i));
+      setItems(items.map(i => i === existing ? { ...i, quantity: i.quantity + qty, total: (i.quantity + qty) * i.unit_price } : i));
     } else {
-      setItems([...items, { product_id: p.id, product_name: p.name, variant_size: size, variant_color: color, quantity: qty, unit_price: p.price }]);
+      setItems([...items, { product_id: p.id, product_name: p.name, variant_size: size, variant_color: color, quantity: qty, unit_price: unit, total: qty * unit }]);
     }
     setPick({ ...pick, [p.id]: { variantKey: '', qty: 1 } });
   };
 
   const removeItem = (idx) => setItems(items.filter((_, i) => i !== idx));
-  const total = items.reduce((a, i) => a + i.quantity * i.unit_price, 0);
+  const total = items.reduce((a, i) => a + i.total, 0);
+
+  const addCustomer = async () => {
+    if (!newCustName.trim()) { toast.error('Informe o nome do cliente'); return; }
+    setAddingCust(true);
+    try {
+      const c = await base44.entities.Customer.create({ name: newCustName.trim(), phone: newCustPhone.trim(), store_id: store?.id });
+      setCustomers([c, ...customers]);
+      setSelectedCustomerId(c.id);
+      setConsigneeName(c.name);
+      setShowNewCust(false);
+      setNewCustName(''); setNewCustPhone('');
+      toast.success('Cliente cadastrado');
+    } catch { toast.error('Erro ao cadastrar cliente'); }
+    finally { setAddingCust(false); }
+  };
 
   const save = async () => {
-    if (!consignee.trim()) { toast.error('Informe o consignatário'); return; }
+    if (!consigneeName.trim()) { toast.error('Selecione ou cadastre o consignatário'); return; }
     if (!items.length) { toast.error('Adicione ao menos um produto'); return; }
     if (!dueDate) { toast.error('Defina o prazo de devolução'); return; }
     setSaving(true);
@@ -73,17 +99,19 @@ export default function NewConsignationDialog({ open, onOpenChange, onCreated })
       await base44.entities.Sale.create({
         store_id: store?.id,
         sale_number: saleNumber,
-        items: items.map(i => ({ ...i, total: i.quantity * i.unit_price })),
+        items: items.map(i => ({ product_id: i.product_id, product_name: i.product_name, variant_size: i.variant_size, variant_color: i.variant_color, quantity: i.quantity, unit_price: i.unit_price, total: i.total })),
         subtotal: total, total,
+        price_table: priceTable,
         sale_type: 'consignacao',
         consignment_status: 'em_consignacao',
         status: 'pendente',
-        consignee_name: consignee.trim(),
+        consignee_name: consigneeName.trim(),
+        customer_id: selectedCustomerId || undefined,
+        customer_name: consigneeName.trim(),
         consignment_due_date: dueDate,
-        customer_name: consignee.trim(),
       });
       toast.success('Consignação registrada');
-      setConsignee(''); setDueDate(''); setItems([]); setSearch(''); setPick({});
+      setConsigneeName(''); setSelectedCustomerId(''); setDueDate(''); setItems([]); setSearch(''); setPick({}); setShowNewCust(false); setNewCustName(''); setNewCustPhone('');
       onCreated?.();
       onOpenChange(false);
     } catch {
@@ -98,14 +126,46 @@ export default function NewConsignationDialog({ open, onOpenChange, onCreated })
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader><DialogTitle>Nova Consignação</DialogTitle></DialogHeader>
         <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
-          <div className="grid sm:grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-semibold mb-1 block">Consignatário (parceiro) *</label>
-              <Input value={consignee} onChange={e => setConsignee(e.target.value)} placeholder="Nome do parceiro" />
+          <div>
+            <label className="text-xs font-semibold mb-1 block">Consignatário (cliente) *</label>
+            <div className="flex gap-2">
+              <Select value={selectedCustomerId} onValueChange={id => {
+                setSelectedCustomerId(id);
+                const c = customers.find(x => x.id === id);
+                setConsigneeName(c?.name || '');
+              }}>
+                <SelectTrigger className="h-10 flex-1"><SelectValue placeholder="Selecionar cliente existente" /></SelectTrigger>
+                <SelectContent>
+                  {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}{c.phone ? ` · ${c.phone}` : ''}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Button type="button" variant="outline" className="h-10 gap-1.5" onClick={() => setShowNewCust(s => !s)}>
+                <UserPlus className="w-4 h-4" /> Novo
+              </Button>
             </div>
+            {showNewCust && (
+              <div className="mt-2 flex gap-2 bg-muted/40 rounded-lg p-2">
+                <Input placeholder="Nome do cliente *" value={newCustName} onChange={e => setNewCustName(e.target.value)} className="h-9" />
+                <Input placeholder="Telefone" value={newCustPhone} onChange={e => setNewCustPhone(e.target.value)} className="h-9 w-40" />
+                <Button type="button" size="sm" onClick={addCustomer} disabled={addingCust}>{addingCust ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Adicionar'}</Button>
+              </div>
+            )}
+            {consigneeName && <p className="text-xs text-muted-foreground mt-1">Selecionado: <span className="font-medium text-foreground">{consigneeName}</span></p>}
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-semibold mb-1 block">Prazo de devolução *</label>
               <Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs font-semibold mb-1 block">Tabela de preço</label>
+              <Select value={priceTable} onValueChange={setPriceTable}>
+                <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {tables.map(t => <SelectItem key={t.key} value={t.key}>{t.name} · {t.payment_method}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -119,11 +179,12 @@ export default function NewConsignationDialog({ open, onOpenChange, onCreated })
               {filtered.map(p => {
                 const variants = p.variants || [];
                 const ps = pick[p.id] || { variantKey: '', qty: 1 };
+                const unit = effectivePrice(p, priceTable, tables);
                 return (
                   <div key={p.id} className="flex items-center gap-2 bg-muted/40 rounded-lg p-2">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{p.name}</p>
-                      <p className="text-xs text-muted-foreground">R$ {(p.price || 0).toFixed(2).replace('.', ',')}</p>
+                      <p className="text-xs text-muted-foreground">R$ {unit.toFixed(2).replace('.', ',')}</p>
                     </div>
                     {variants.length > 0 && (
                       <Select value={ps.variantKey} onValueChange={v => setPick({ ...pick, [p.id]: { ...ps, variantKey: v } })}>
@@ -151,7 +212,7 @@ export default function NewConsignationDialog({ open, onOpenChange, onCreated })
                     <p className="text-xs text-muted-foreground">{[it.variant_size, it.variant_color].filter(Boolean).join(' / ') || 'Único'}</p>
                   </div>
                   <span className="text-muted-foreground">{it.quantity}x</span>
-                  <span className="font-medium tabular-nums">R$ {(it.quantity * it.unit_price).toFixed(2).replace('.', ',')}</span>
+                  <span className="font-medium tabular-nums">R$ {it.total.toFixed(2).replace('.', ',')}</span>
                   <button onClick={() => removeItem(idx)} className="text-muted-foreground hover:text-destructive"><Trash2 className="w-4 h-4" /></button>
                 </div>
               ))}

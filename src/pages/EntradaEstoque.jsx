@@ -5,9 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useStore } from '@/lib/StoreContext';
+import { getStoreTables } from '@/lib/priceTables';
 import ProductDetailModal from '@/components/ProductDetailModal';
 
 export default function EntradaEstoque() {
+  const { store } = useStore();
+  const tables = getStoreTables(store);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -47,6 +51,16 @@ export default function EntradaEstoque() {
     const key = `${productId}-${size}-${color}`;
     const current = quantities[key] || 0;
     setQuantities(q => ({ ...q, [key]: Math.max(0, current + delta) }));
+  };
+
+  const toggleTable = async (product, key) => {
+    const current = product.active_tables && product.active_tables.length ? product.active_tables : tables.map(t => t.key);
+    const next = current.includes(key) ? current.filter(k => k !== key) : [...current, key];
+    try {
+      await base44.entities.Product.update(product.id, { active_tables: next });
+      setProducts(prev => prev.map(p => p.id === product.id ? { ...p, active_tables: next } : p));
+      toast.success('Tabelas do produto atualizadas');
+    } catch { toast.error('Erro ao atualizar tabelas'); }
   };
 
   // Count how many products have pending entries
@@ -198,6 +212,19 @@ export default function EntradaEstoque() {
               {/* Variants */}
               {isOpen && (
                 <div className="border-t border-border bg-muted/20 p-4">
+                  <div className="flex items-center gap-2 flex-wrap mb-3">
+                    <span className="text-xs text-muted-foreground font-medium">Tabelas:</span>
+                    {tables.map(t => {
+                      const active = !product.active_tables?.length || product.active_tables.includes(t.key);
+                      return (
+                        <button key={t.key} onClick={() => toggleTable(product, t.key)}
+                          className={cn("text-xs px-2.5 py-1 rounded-full border transition-colors",
+                            active ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border")}>
+                          {t.name}
+                        </button>
+                      );
+                    })}
+                  </div>
                   {!product.variants?.length ? (
                     <p className="text-sm text-muted-foreground text-center py-3">Nenhuma variante cadastrada</p>
                   ) : (

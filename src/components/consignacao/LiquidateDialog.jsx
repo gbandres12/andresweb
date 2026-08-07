@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useStore } from '@/lib/StoreContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,12 +8,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { getStoreTables } from '@/lib/priceTables';
 
 const TX_METHOD = { 'Dinheiro': 'Dinheiro', 'PIX': 'PIX', 'Cartão': 'Cartão de Crédito' };
 
 export default function LiquidateDialog({ consignment, onOpenChange, onDone }) {
+  const { store } = useStore();
+  const tables = getStoreTables(store);
   const [sold, setSold] = useState({});
   const [paymentMethod, setPaymentMethod] = useState('PIX');
+  const [priceTable, setPriceTable] = useState('cliente_final');
   const [salesChannel, setSalesChannel] = useState('');
   const [seller, setSeller] = useState('');
   const [saving, setSaving] = useState(false);
@@ -22,8 +27,12 @@ export default function LiquidateDialog({ consignment, onOpenChange, onDone }) {
       const init = {};
       (consignment.items || []).forEach((it, i) => { init[i] = 0; });
       setSold(init);
+      const pt = consignment.price_table || tables[0]?.key || 'cliente_final';
+      setPriceTable(pt);
+      const tcfg = tables.find(t => t.key === pt);
+      if (tcfg && ['Dinheiro', 'PIX', 'Cartão'].includes(tcfg.payment_method)) setPaymentMethod(tcfg.payment_method);
+      else setPaymentMethod('PIX');
       setSeller(consignment.consignee_name || '');
-      setPaymentMethod('PIX');
       setSalesChannel('');
     }
   }, [consignment]);
@@ -36,6 +45,12 @@ export default function LiquidateDialog({ consignment, onOpenChange, onDone }) {
   const remainingItems = items.map((it, i) => ({ ...it, quantity: it.quantity - Number(sold[i] || 0) })).filter(r => r.quantity > 0);
   const allSold = remainingItems.length === 0 && soldItems.length > 0;
 
+  const onTableChange = (key) => {
+    setPriceTable(key);
+    const tcfg = tables.find(t => t.key === key);
+    if (tcfg && ['Dinheiro', 'PIX', 'Cartão'].includes(tcfg.payment_method)) setPaymentMethod(tcfg.payment_method);
+  };
+
   const save = async () => {
     if (!soldItems.length) { toast.error('Informe a quantidade vendida de ao menos um item'); return; }
     if (!paymentMethod) { toast.error('Selecione o pagamento'); return; }
@@ -47,11 +62,12 @@ export default function LiquidateDialog({ consignment, onOpenChange, onDone }) {
         sale_number: `VND-${Date.now().toString().slice(-6)}`,
         items: soldItems.map(s => ({ product_id: s.product_id, product_name: s.product_name, variant_size: s.variant_size, variant_color: s.variant_color, quantity: s.soldQty, unit_price: s.unit_price, total: s.soldQty * s.unit_price })),
         subtotal: soldTotal, total: soldTotal,
-        price_table: 'cliente_final',
+        price_table: priceTable,
         payment_method: paymentMethod,
         sales_channel: salesChannel || undefined,
         seller_name: seller || consignment.consignee_name,
         customer_name: consignment.consignee_name,
+        customer_id: consignment.customer_id || undefined,
         status: 'concluida',
         sale_type: 'venda',
       });
@@ -59,6 +75,7 @@ export default function LiquidateDialog({ consignment, onOpenChange, onDone }) {
         description: `Venda consignação ${consignment.sale_number}`,
         amount: soldTotal, type: 'receita', category: 'Consignação',
         customer_name: consignment.consignee_name,
+        customer_id: consignment.customer_id || undefined,
         payment_method: TX_METHOD[paymentMethod] || 'Outros',
         status: 'pago', paid_date: format(new Date(), 'yyyy-MM-dd'), month, store_id: consignment.store_id,
       });
@@ -101,6 +118,15 @@ export default function LiquidateDialog({ consignment, onOpenChange, onDone }) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
+              <label className="text-xs font-semibold mb-1 block">Tabela</label>
+              <Select value={priceTable} onValueChange={onTableChange}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {tables.map(t => <SelectItem key={t.key} value={t.key}>{t.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
               <label className="text-xs font-semibold mb-1 block">Pagamento *</label>
               <Select value={paymentMethod} onValueChange={setPaymentMethod}>
                 <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
@@ -109,15 +135,15 @@ export default function LiquidateDialog({ consignment, onOpenChange, onDone }) {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <label className="text-xs font-semibold mb-1 block">Canal</label>
-              <Select value={salesChannel} onValueChange={setSalesChannel}>
-                <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  {['Loja Física', 'WhatsApp', 'Instagram', 'Facebook', 'Site / E-commerce', 'Outros'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
+          </div>
+          <div>
+            <label className="text-xs font-semibold mb-1 block">Canal</label>
+            <Select value={salesChannel} onValueChange={setSalesChannel}>
+              <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>
+                {['Loja Física', 'WhatsApp', 'Instagram', 'Facebook', 'Site / E-commerce', 'Outros'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <label className="text-xs font-semibold mb-1 block">Vendedor</label>
