@@ -14,7 +14,7 @@ const ACCESS = {
   manager: [
     '/pdv', '/produtos', '/entrada-inteligente', '/importar-nfe', '/estoque',
     '/clientes', '/vendas', '/financeiro', '/calculadora',
-    '/pesquisa-global', '/relatorios',
+    '/pesquisa-global', '/relatorios', '/transferencias',
   ],
   staff: ['/pdv', '/clientes', '/vendas'],
 };

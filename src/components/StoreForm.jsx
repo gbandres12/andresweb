@@ -30,6 +30,7 @@ export default function StoreForm({ open, onClose, onSaved, initial = null }) {
   const isEdit = !!initial;
   const [form, setForm] = useState(() => ({
     name: initial?.name || '',
+    type: initial?.type || 'loja',
     cnpj: initial?.cnpj || '',
     phone: initial?.phone || '',
     email: initial?.email || '',
@@ -48,6 +49,7 @@ export default function StoreForm({ open, onClose, onSaved, initial = null }) {
       let store;
       const payload = {
         name: form.name.trim(),
+        type: form.type,
         cnpj: form.cnpj,
         phone: form.phone,
         email: form.email,
@@ -79,6 +81,16 @@ export default function StoreForm({ open, onClose, onSaved, initial = null }) {
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold uppercase tracking-wide">Nome da loja *</Label>
             <Input value={form.name} onChange={set('name')} placeholder="Ex: Boutique Flores" autoFocus />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold uppercase tracking-wide">Tipo</Label>
+            <Select value={form.type} onValueChange={v => setForm(f => ({ ...f, type: v }))}>
+              <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="loja">Loja (venda)</SelectItem>
+                <SelectItem value="deposito">Depósito / Estoque geral</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">

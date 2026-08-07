@@ -1,0 +1,165 @@
+{
+  "name": "Transfer",
+  "type": "object",
+  "properties": {
+    "store_id": {
+      "type": "string",
+      "description": "Loja de origem (dep\u00f3sito) \u2014 base para RLS"
+    },
+    "transfer_number": {
+      "type": "string",
+      "description": "N\u00famero da guia de transfer\u00eancia"
+    },
+    "origin_store_id": {
+      "type": "string",
+      "description": "ID da loja de origem"
+    },
+    "origin_store_name": {
+      "type": "string"
+    },
+    "destination_store_id": {
+      "type": "string",
+      "description": "ID da loja de destino"
+    },
+    "destination_store_name": {
+      "type": "string"
+    },
+    "items": {
+      "type": "array",
+      "description": "Itens da guia",
+      "items": {
+        "type": "object",
+        "properties": {
+          "product_id": {
+            "type": "string"
+          },
+          "product_name": {
+            "type": "string"
+          },
+          "sku": {
+            "type": "string"
+          },
+          "gtin": {
+            "type": "string"
+          },
+          "variant_size": {
+            "type": "string"
+          },
+          "variant_color": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number",
+            "description": "Quantidade enviada"
+          },
+          "received_quantity": {
+            "type": "number",
+            "default": 0,
+            "description": "Quantidade efetivamente recebida"
+          }
+        }
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "rascunho",
+        "em_transito",
+        "recebido",
+        "parcial",
+        "cancelado"
+      ],
+      "default": "rascunho",
+      "description": "Status da guia"
+    },
+    "total_items": {
+      "type": "number"
+    },
+    "total_quantity": {
+      "type": "number"
+    },
+    "dispatched_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "received_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "dispatched_by": {
+      "type": "string"
+    },
+    "received_by": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "loss_notes": {
+      "type": "string",
+      "description": "Registro de perdas/diferen\u00e7as no recebimento"
+    }
+  },
+  "required": [
+    "origin_store_id",
+    "destination_store_id",
+    "items",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.store_id": "{{user.data.store_id}}"
+        },
+        {
+          "data.destination_store_id": "{{user.data.store_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "data.store_id": "{{user.data.store_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.store_id": "{{user.data.store_id}}"
+        },
+        {
+          "data.destination_store_id": "{{user.data.store_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "data.store_id": "{{user.data.store_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

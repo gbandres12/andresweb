@@ -5,7 +5,7 @@ import { canAccess, homeForRole } from '@/lib/permissions';
 import {
   LayoutDashboard, ShoppingCart, Package, BarChart3,
   Users, Menu, X, Store as StoreIcon, ChevronRight, LogOut, Wallet, Calculator,
-  Building2, ScanLine, FileText, Check, ChevronsUpDown, Plus, Settings, Globe, PieChart, ShieldAlert
+  Building2, ScanLine, FileText, Check, ChevronsUpDown, Plus, Settings, Globe, PieChart, ShieldAlert, ArrowLeftRight
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { cn } from '@/lib/utils';
@@ -36,6 +36,7 @@ const navGroups = [
     items: [
       { path: '/produtos', label: 'Produtos', icon: Package },
       { path: '/estoque', label: 'Estoque', icon: BarChart3 },
+      { path: '/transferencias', label: 'Transferências', icon: ArrowLeftRight },
       { path: '/entrada-inteligente', label: 'Entrada IA', icon: ScanLine },
       { path: '/importar-nfe', label: 'Importar NFe', icon: FileText },
       { path: '/pesquisa-global', label: 'Pesquisa Global', icon: Globe },
