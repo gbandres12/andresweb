@@ -9,7 +9,7 @@ import {
   PackagePlus, CheckCircle2, AlertTriangle, X, FileCheck2
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { parseNFeXml, processImport } from '@/lib/nfe';
+import { parseNFeXml, processImport, mapCategory, getCategoryCode, buildRefCode } from '@/lib/nfe';
 import { cn } from '@/lib/utils';
 
 export default function ImportarNFe() {
@@ -24,6 +24,7 @@ export default function ImportarNFe() {
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [results, setResults] = useState(null);
+  const [categories, setCategories] = useState([]);
 
   useEffect(() => {
     (async () => {
@@ -34,6 +35,7 @@ export default function ImportarNFe() {
       } catch {
         toast.error('Erro ao carregar lojas');
       }
+      base44.entities.Category.list().then(setCategories).catch(() => {});
     })();
   }, []);
 
@@ -208,6 +210,7 @@ export default function ImportarNFe() {
                         <tr>
                           <th className="text-left px-4 py-2 text-xs font-semibold uppercase text-muted-foreground">Produto</th>
                           <th className="text-left px-3 py-2 text-xs font-semibold uppercase text-muted-foreground hidden sm:table-cell">Cor · Tam</th>
+                          <th className="text-left px-3 py-2 text-xs font-semibold uppercase text-muted-foreground">Código</th>
                           <th className="text-right px-3 py-2 text-xs font-semibold uppercase text-muted-foreground">Custo un.</th>
                           <th className="text-right px-4 py-2 text-xs font-semibold uppercase text-muted-foreground">Qtd</th>
                           <th className="text-right px-4 py-2 text-xs font-semibold uppercase text-muted-foreground">Total</th>
@@ -221,6 +224,20 @@ export default function ImportarNFe() {
                               <p className="text-xs text-muted-foreground">NCM {it.ncm || '—'}{it.sku ? ` · ${it.sku}` : ''}</p>
                             </td>
                             <td className="px-3 py-2.5 hidden sm:table-cell text-xs text-muted-foreground">{it.color} · {it.size}</td>
+                            <td className="px-3 py-2.5">
+                              {(() => {
+                                const cat = mapCategory(it.name);
+                                const catCode = getCategoryCode(cat, categories);
+                                const salePrice = it.vUnCom > 0 ? Math.round(it.vUnCom * (1 + (Number(markup) || 0) / 100) * 100) / 100 : 0;
+                                const refCode = buildRefCode(catCode, salePrice);
+                                return (
+                                  <>
+                                    <p className="text-sm font-mono font-semibold text-primary tabular-nums">{refCode}</p>
+                                    <p className="text-xs text-muted-foreground">{cat} · {catCode}</p>
+                                  </>
+                                );
+                              })()}
+                            </td>
                             <td className="px-3 py-2.5 text-right text-sm tabular-nums text-muted-foreground">R$ {it.vUnCom.toFixed(2).replace('.', ',')}</td>
                             <td className="px-4 py-2.5 text-right text-sm tabular-nums text-foreground">{it.qCom}</td>
                             <td className="px-4 py-2.5 text-right text-sm font-semibold tabular-nums text-foreground">R$ {it.vProd.toFixed(2).replace('.', ',')}</td>

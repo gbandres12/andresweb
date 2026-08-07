@@ -68,6 +68,25 @@ export function mapCategory(name) {
   return 'Outros';
 }
 
+// Códigos numéricos das categorias (padrão de romaneio: 0–9).
+// Sobrescritos pelos códigos definidos na entidade Category da loja.
+export const DEFAULT_CATEGORY_CODES = {
+  'Lingerie': '0', 'Blusas': '1', 'Calças': '2', 'Saias': '3',
+  'Shorts': '4', 'Vestidos': '5', 'Casacos': '6', 'Moda Praia': '7', 'Acessórios': '8', 'Outros': '9',
+};
+
+export function getCategoryCode(categoryName, categoryEntities) {
+  const match = (categoryEntities || []).find(c => c.name === categoryName && c.code);
+  if (match?.code) return String(match.code).trim();
+  return DEFAULT_CATEGORY_CODES[categoryName] || '0';
+}
+
+// Código de referência = código da categoria + preço de venda em centavos (ex.: 0 + 4,90 -> 0490).
+export function buildRefCode(catCode, price) {
+  const cents = Math.max(0, Math.round((Number(price) || 0) * 100));
+  return `${catCode}${cents.toString().padStart(3, '0')}`;
+}
+
 /**
  * Importa as notas em uma loja-alvo: cria produtos novos ou
  * atualiza estoque dos existentes, e registra movimentações de entrada.
@@ -76,6 +95,8 @@ export async function processImport(targetStoreId, notas, markup, onProgress) {
   const results = { created: 0, updated: 0, movements: 0, errors: [] };
   const total = notas.reduce((a, n) => a + n.items.length, 0);
   let done = 0;
+  let categoryEntities = [];
+  try { categoryEntities = await base44.entities.Category.list(); } catch { /* ignore */ }
 
   for (const nota of notas) {
     for (const item of nota.items) {
@@ -96,13 +117,18 @@ export async function processImport(targetStoreId, notas, markup, onProgress) {
           });
           results.updated++;
         } else {
+          const cat = mapCategory(item.name);
+          const salePrice = item.vUnCom > 0 ? Math.round(item.vUnCom * (1 + (markup || 0) / 100) * 100) / 100 : 0;
+          const catCode = getCategoryCode(cat, categoryEntities);
+          const refCode = buildRefCode(catCode, salePrice);
           await base44.entities.Product.create({
             store_id: targetStoreId,
             name: item.name,
-            description: `NCM ${item.ncm}` + (item.sku ? ` · SKU ${item.sku}` : ''),
-            category: mapCategory(item.name),
-            price: item.vUnCom > 0 ? Math.round(item.vUnCom * (1 + (markup || 0) / 100) * 100) / 100 : 0,
+            description: `NCM ${item.ncm}` + (item.sku ? ` · SKU ${item.sku}` : '') + ` · REF ${refCode}`,
+            category: cat,
+            price: salePrice,
             cost_price: item.vUnCom || 0,
+            sku: refCode,
             variants: [{ size: item.size, color: item.color, stock: item.qCom, sku: item.sku }],
             is_active: true,
             tags: [],

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, Upload, Sparkles, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { PRICE_TABLE_DEFAULTS, getStoreTables, effectivePrice, fmtPct } from '@/lib/priceTables';
+import { getStoreTables, effectivePrice, fmtPct } from '@/lib/priceTables';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/StoreContext';
 
@@ -29,7 +29,6 @@ export default function ProductForm({ product, onClose }) {
     gtin: product?.gtin || '',
     sku: product?.sku || '',
     tags: product?.tags || [],
-    price_tables: product?.price_tables || { ...PRICE_TABLE_DEFAULTS },
     active_tables: product?.active_tables || [],
   });
   const [uploading, setUploading] = useState(false);
@@ -109,11 +108,6 @@ Gere um SKU curto, até 12 caracteres, sem espaços, combinando iniciais da loja
       ...form,
       price: Number(form.price),
       cost_price: Number(form.cost_price) || 0,
-      price_tables: {
-        cliente_final: Number(form.price_tables.cliente_final) || 0,
-        atacado: Number(form.price_tables.atacado) || 0,
-        revenda: Number(form.price_tables.revenda) || 0,
-      },
       active_tables: form.active_tables,
     };
     if (product) {
@@ -190,7 +184,8 @@ Gere um SKU curto, até 12 caracteres, sem espaços, combinando iniciais da loja
 
       {/* Tabelas participantes */}
       <div>
-        <label className="text-sm font-medium mb-2 block">Tabelas de Preço (participa / ajuste %)</label>
+        <label className="text-sm font-medium mb-2 block">Tabelas de Preço (participação)</label>
+        <p className="text-xs text-muted-foreground mb-2">A margem de cada tabela é definida em Configurações e aplicada automaticamente.</p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {tables.map(t => {
             const active = !form.active_tables.length || form.active_tables.includes(t.key);
@@ -208,16 +203,10 @@ Gere um SKU curto, até 12 caracteres, sem espaços, combinando iniciais da loja
                   </label>
                   <span className="text-[10px] text-muted-foreground">{t.payment_method}</span>
                 </div>
-                <Input
-                  type="number"
-                  value={form.price_tables[t.key] ?? t.adjustment}
-                  onChange={e => set('price_tables', { ...form.price_tables, [t.key]: e.target.value })}
-                  placeholder={String(t.adjustment)}
-                  className="h-9 text-sm"
-                />
-                <p className="text-xs text-primary font-medium mt-1.5 tabular-nums">
-                  R$ {effectivePrice({ price: Number(form.price) || 0, price_tables: form.price_tables, active_tables: form.active_tables }, t.key, tables).toFixed(2).replace('.', ',')}
-                </p>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Margem: {fmtPct(t.adjustment)}</span>
+                  <span className="text-primary font-medium tabular-nums">R$ {effectivePrice({ price: Number(form.price) || 0, active_tables: form.active_tables }, t.key, tables).toFixed(2).replace('.', ',')}</span>
+                </div>
               </div>
             );
           })}

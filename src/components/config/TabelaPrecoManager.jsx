@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Loader2, Save, RefreshCw, Percent } from 'lucide-react';
+import { Loader2, Save, Percent, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -15,14 +15,8 @@ export default function TabelaPrecoManager() {
   const [config, setConfig] = useState(DEFAULT_TABLES_CONFIG.map(t => ({ ...t })));
   const [basePreview, setBasePreview] = useState(100);
   const [saving, setSaving] = useState(false);
-  const [applying, setApplying] = useState(false);
-  const [count, setCount] = useState(null);
 
   useEffect(() => { setConfig(getStoreTables(store)); }, [store]);
-
-  useEffect(() => {
-    base44.entities.Product.list('-updated_date', 1).then(r => setCount(r?.length ?? null)).catch(() => {});
-  }, []);
 
   const update = (key, field, val) => {
     setConfig(prev => prev.map(t => t.key === key
@@ -45,29 +39,12 @@ export default function TabelaPrecoManager() {
       cleaned.forEach(c => { defaultsMap[c.key] = c.adjustment; });
       const settings = { ...(store?.settings || {}), price_tables_config: cleaned, price_tables_defaults: defaultsMap };
       await base44.entities.Store.update(store.id, { settings });
-      toast({ title: 'Tabelas de preço salvas' });
+      toast({ title: 'Tabelas de preço salvas', description: 'Aplicadas automaticamente em todo o sistema.' });
       await reload();
     } catch {
       toast({ title: 'Erro ao salvar tabelas', variant: 'destructive' });
     } finally {
       setSaving(false);
-    }
-  };
-
-  const applyToAll = async () => {
-    if (!window.confirm('Aplicar estes percentuais a TODOS os produtos? Os valores individuais atuais de cada tabela serão substituídos.')) return;
-    setApplying(true);
-    try {
-      const products = await base44.entities.Product.list('-updated_date', 500);
-      const map = {};
-      config.forEach(t => { map[t.key] = Number(t.adjustment) || 0; });
-      const updates = products.map(p => ({ id: p.id, price_tables: { ...map } }));
-      await base44.entities.Product.bulkUpdate(updates);
-      toast({ title: `${products.length} produtos atualizados`, description: 'Todos os produtos agora usam os percentuais configurados.' });
-    } catch {
-      toast({ title: 'Erro ao aplicar aos produtos', variant: 'destructive' });
-    } finally {
-      setApplying(false);
     }
   };
 
@@ -85,19 +62,16 @@ export default function TabelaPrecoManager() {
               <Percent className="w-4 h-4 text-primary" /> Tabelas de Preço
             </h2>
             <p className="text-sm text-muted-foreground mt-1 max-w-xl">
-              Cada tabela é vinculada a uma forma de pagamento. Edite o nome, a forma de pagamento e o ajuste percentual sobre o preço base.
+              Cada tabela é vinculada a uma forma de pagamento. Edite o nome, a forma de pagamento e a margem sobre o preço base.
+            </p>
+            <p className="text-xs text-primary flex items-center gap-1.5 mt-2">
+              <Zap className="w-3.5 h-3.5" /> Aplicado automaticamente no PDV, consignação, catálogo e relatórios.
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={applyToAll} disabled={applying}>
-              {applying ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-              Aplicar a todos os produtos
-            </Button>
-            <Button onClick={save} disabled={saving || !dirty}>
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              Salvar tabelas
-            </Button>
-          </div>
+          <Button onClick={save} disabled={saving || !dirty}>
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            Salvar tabelas
+          </Button>
         </div>
       </div>
 
@@ -129,7 +103,7 @@ export default function TabelaPrecoManager() {
                 </div>
                 <div className="sm:col-span-5 flex items-center justify-between sm:justify-end gap-3">
                   <div className="text-right">
-                    <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Ajuste</p>
+                    <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Margem</p>
                     <p className={cn('text-sm font-medium tabular-nums', v < 0 ? 'text-destructive' : v > 0 ? 'text-green-600' : 'text-muted-foreground')}>{fmtPct(v)}</p>
                   </div>
                   <div className="h-8 w-px bg-border hidden sm:block" />
@@ -145,8 +119,7 @@ export default function TabelaPrecoManager() {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Dica: o preço base fica no cadastro de cada produto. Em "Produtos" você escolhe em quais tabelas cada produto participa.
-        {count !== null && <> Atualmente você tem <strong className="text-foreground">{count}</strong> {count === 1 ? 'produto cadastrado' : 'produtos cadastrados'}.</>}
+        Dica: o preço base fica no cadastro de cada produto, onde você também escolhe em quais tabelas ele participa. A margem acima é aplicada automaticamente sobre o preço base.
       </p>
     </div>
   );
