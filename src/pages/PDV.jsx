@@ -13,6 +13,7 @@ import { effectivePrice, PRICE_TABLES } from '@/lib/priceTables';
 import { useStore } from '@/lib/StoreContext';
 
 const PAGE_SIZE = 40;
+const SALES_CHANNELS = ['Loja Física', 'WhatsApp', 'Instagram', 'Facebook', 'Site / E-commerce', 'Telefone', 'Indicação', 'Feira / Evento', 'Outros'];
 
 export default function PDV() {
   const [cart, setCart] = useState([]);
@@ -29,6 +30,8 @@ export default function PDV() {
   const [priceTable, setPriceTable] = useState('cliente_final');
   const [scan, setScan] = useState('');
   const [seller, setSeller] = useState('');
+  const [consultant, setConsultant] = useState('');
+  const [salesChannel, setSalesChannel] = useState('');
   const [inadimplencia, setInadimplencia] = useState(null);
   const [cashReceived, setCashReceived] = useState('');
   const gridRef = useRef(null);
@@ -117,6 +120,7 @@ export default function PDV() {
   const finalizeSale = async () => {
     if (!cart.length) { toast.error('Carrinho vazio'); return; }
     if (!paymentMethod) { toast.error('Selecione o pagamento'); return; }
+    if (!salesChannel) { toast.error('Selecione o canal de venda'); return; }
 
     // Verifica inadimplência: títulos vencidos do cliente em Contas a Receber
     if (customerName.trim()) {
@@ -165,6 +169,8 @@ export default function PDV() {
       customer_name: customerName,
       customer_phone: customerPhone,
       seller_name: seller,
+      consultant_name: consultant,
+      sales_channel: salesChannel,
       notes,
       status: 'concluida',
     };
@@ -224,6 +230,8 @@ export default function PDV() {
     setCustomerName('');
     setCustomerPhone('');
     setNotes('');
+    setConsultant('');
+    setSalesChannel('');
     setShowSuccess(true);
     setLoading(false);
   };
@@ -346,7 +354,19 @@ export default function PDV() {
 
         {/* Summary & checkout */}
         <div className="p-5 border-t border-border space-y-3">
-          <Input placeholder="Vendedor" value={seller} onChange={e => setSeller(e.target.value)} className="h-10" />
+          <div>
+            <label className="text-xs font-semibold text-foreground mb-1.5 block">Canal de venda *</label>
+            <Select value={salesChannel} onValueChange={setSalesChannel}>
+              <SelectTrigger className={cn("h-10", !salesChannel && "border-primary ring-1 ring-primary/30")}>
+                <SelectValue placeholder="De onde veio esta venda?" />
+              </SelectTrigger>
+              <SelectContent>
+                {SALES_CHANNELS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <Input placeholder="Nome do consultor" value={consultant} onChange={e => setConsultant(e.target.value)} className="h-10" />
+          <Input placeholder="Vendedor (caixa)" value={seller} onChange={e => setSeller(e.target.value)} className="h-10" />
           <Input placeholder="Nome do cliente" value={customerName} onChange={e => setCustomerName(e.target.value)} className="h-10" />
           <Input placeholder="Telefone (opcional)" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} className="h-10" />
           <Input

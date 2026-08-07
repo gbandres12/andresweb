@@ -49,6 +49,21 @@
       ],
       "description": "Tabela de pre\u00e7o aplicada na venda"
     },
+    "sales_channel": {
+      "type": "string",
+      "enum": [
+        "Loja F\u00edsica",
+        "WhatsApp",
+        "Instagram",
+        "Facebook",
+        "Site / E-commerce",
+        "Telefone",
+        "Indica\u00e7\u00e3o",
+        "Feira / Evento",
+        "Outros"
+      ],
+      "description": "Canal de origem da venda (para relat\u00f3rios por canal)"
+    },
     "subtotal": {
       "type": "number"
     },
@@ -85,6 +100,14 @@
     "notes": {
       "type": "string"
     },
+    "seller_name": {
+      "type": "string",
+      "description": "Vendedor / caixa"
+    },
+    "consultant_name": {
+      "type": "string",
+      "description": "Consultor que atendeu o cliente"
+    },
     "status": {
       "type": "string",
       "enum": [
@@ -93,9 +116,6 @@
         "pendente"
       ],
       "default": "concluida"
-    },
-    "seller_name": {
-      "type": "string"
     }
   },
   "required": [
