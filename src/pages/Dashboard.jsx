@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
-import { TrendingUp, ShoppingBag, Package, Users, ArrowRight, AlertTriangle, Star, ChevronDown, Store as StoreIcon, BarChart3, FileText } from 'lucide-react';
+import { TrendingUp, ShoppingBag, Package, Users, ArrowRight, AlertTriangle, Star, ChevronDown, Store as StoreIcon, BarChart3, FileText, ShoppingCart, RefreshCw, ArrowLeftRight } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { format, startOfDay, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useStore } from '@/hooks/useStore';
+import { cn } from '@/lib/utils';
 
 export default function Dashboard() {
   const [sales, setSales] = useState([]);
@@ -131,6 +132,21 @@ export default function Dashboard() {
               <ChevronDown className="w-4 h-4 text-muted-foreground/60 absolute right-3 pointer-events-none" />
             </div>
           </div>
+        </div>
+
+        {/* Ações rápidas */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {[
+            { to: '/pdv', icon: ShoppingCart, label: 'Venda Rápida', tone: 'bg-primary text-primary-foreground hover:bg-primary/90' },
+            { to: '/produtos', icon: Package, label: 'Cadastrar Produto', tone: 'bg-card border border-border text-foreground hover:bg-muted' },
+            { to: '/clientes', icon: Users, label: 'Cadastrar Cliente', tone: 'bg-card border border-border text-foreground hover:bg-muted' },
+            { to: '/consignacoes', icon: RefreshCw, label: 'Consignações', tone: 'bg-card border border-border text-foreground hover:bg-muted' },
+            { to: '/transferencias', icon: ArrowLeftRight, label: 'Transferência', tone: 'bg-card border border-border text-foreground hover:bg-muted' },
+          ].map(a => (
+            <Link key={a.to} to={a.to} className={cn("flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium transition-colors", a.tone)}>
+              <a.icon className="w-4 h-4 shrink-0" /> <span className="truncate">{a.label}</span>
+            </Link>
+          ))}
         </div>
 
         {/* KPI row */}

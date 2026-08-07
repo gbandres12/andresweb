@@ -27,6 +27,7 @@ import Configuracoes from '@/pages/Configuracoes';
 import ConfiguracaoLoja from '@/pages/ConfiguracaoLoja';
 import Transferencias from '@/pages/Transferencias';
 import Trocas from '@/pages/Trocas';
+import Consignacoes from '@/pages/Consignacoes';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -83,6 +84,7 @@ const AuthenticatedApp = () => {
         <Route path="/lojas/:id/configurar" element={<ConfiguracaoLoja />} />
         <Route path="/transferencias" element={<Transferencias />} />
         <Route path="/trocas" element={<Trocas />} />
+        <Route path="/consignacoes" element={<Consignacoes />} />
       </Route>
 
       <Route path="*" element={<PageNotFound />} />

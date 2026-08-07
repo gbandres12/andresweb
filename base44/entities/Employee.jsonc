@@ -1,0 +1,114 @@
+{
+  "name": "Employee",
+  "type": "object",
+  "properties": {
+    "store_id": {
+      "type": "string",
+      "description": "Loja principal do vendedor (base para RLS)"
+    },
+    "name": {
+      "type": "string",
+      "description": "Nome do vendedor/funcion\u00e1rio"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "vendedor",
+        "gerente",
+        "caixa"
+      ],
+      "default": "vendedor",
+      "description": "Fun\u00e7\u00e3o do vendedor na loja"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Telefone de contato"
+    },
+    "email": {
+      "type": "string",
+      "description": "E-mail de contato"
+    },
+    "store_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Outras lojas onde o vendedor tamb\u00e9m atua (multi-loja)"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Vendedor ativo"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.store_id": "{{user.data.store_id}}"
+        },
+        {
+          "data.store_ids": "{{user.data.store_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "data.store_id": "{{user.data.store_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.store_id": "{{user.data.store_id}}"
+        },
+        {
+          "data.store_ids": {
+            "$in": [
+              "{{user.data.store_id}}"
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "data.store_id": "{{user.data.store_id}}"
+        },
+        {
+          "data.store_ids": {
+            "$in": [
+              "{{user.data.store_id}}"
+            ]
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

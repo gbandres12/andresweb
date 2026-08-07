@@ -12,6 +12,7 @@ import { usePaginatedProducts } from '@/hooks/usePaginatedProducts';
 import { effectivePrice, PRICE_TABLES } from '@/lib/priceTables';
 import { useStore } from '@/lib/StoreContext';
 import ExchangeDialog from '@/components/exchange/ExchangeDialog';
+import CategoryReference from '@/components/pdv/CategoryReference';
 
 const PAGE_SIZE = 40;
 const SALES_CHANNELS = ['Loja Física', 'WhatsApp', 'Instagram', 'Facebook', 'Site / E-commerce', 'Telefone', 'Indicação', 'Feira / Evento', 'Outros'];
@@ -36,11 +37,17 @@ export default function PDV() {
   const [inadimplencia, setInadimplencia] = useState(null);
   const [cashReceived, setCashReceived] = useState('');
   const [exchangeOpen, setExchangeOpen] = useState(false);
+  const [employees, setEmployees] = useState([]);
+  const [isConsignation, setIsConsignation] = useState(false);
+  const [consigneeName, setConsigneeName] = useState('');
   const gridRef = useRef(null);
   const { store } = useStore();
 
   useEffect(() => {
     base44.auth.me().then(u => setSeller(u?.full_name || '')).catch(() => {});
+    base44.entities.Employee.list('-created_date', 200)
+      .then(list => setEmployees(list || []))
+      .catch(() => {});
   }, []);
 
   const {
@@ -121,6 +128,11 @@ export default function PDV() {
 
   const finalizeSale = async () => {
     if (!cart.length) { toast.error('Carrinho vazio'); return; }
+    if (isConsignation) {
+      if (!consigneeName.trim()) { toast.error('Informe o consignatário'); return; }
+      if (!seller.trim()) { toast.error('Informe o vendedor'); return; }
+      return doFinalize(null);
+    }
     if (!paymentMethod) { toast.error('Selecione o pagamento'); return; }
     if (!salesChannel) { toast.error('Selecione o canal de venda'); return; }
     if (!seller.trim()) { toast.error('Informe o vendedor'); return; }
@@ -190,13 +202,16 @@ export default function PDV() {
       consultant_name: consultant,
       sales_channel: salesChannel,
       notes,
-      status: 'concluida',
+      status: isConsignation ? 'pendente' : 'concluida',
+      sale_type: isConsignation ? 'consignacao' : 'venda',
+      consignment_status: isConsignation ? 'em_consignacao' : undefined,
+      consignee_name: isConsignation ? consigneeName : undefined,
     };
 
     const created = await base44.entities.Sale.create(saleData);
 
     // Comissão automática por vendedor (base: faturamento ou liquidação)
-    try {
+    if (!isConsignation) try {
       const cfg = store?.settings?.commission || {};
       const rate = Number(cfg.sellers?.[seller] ?? cfg.default_rate ?? 0);
       if (rate > 0 && seller) {
@@ -260,6 +275,8 @@ export default function PDV() {
     setNotes('');
     setConsultant('');
     setSalesChannel('');
+    setIsConsignation(false);
+    setConsigneeName('');
     setShowSuccess(true);
     setLoading(false);
   };
@@ -297,6 +314,7 @@ export default function PDV() {
                 {PRICE_TABLES.map(t => <SelectItem key={t.key} value={t.key}>{t.label}</SelectItem>)}
               </SelectContent>
             </Select>
+            <div className="ml-auto"><CategoryReference /></div>
           </div>
         </div>
 
@@ -397,9 +415,30 @@ export default function PDV() {
             </Select>
           </div>
           <Input placeholder="Nome do consultor" value={consultant} onChange={e => setConsultant(e.target.value)} className="h-10" />
+          <label className="flex items-center gap-2.5 cursor-pointer select-none rounded-lg bg-muted/60 px-3 py-2.5">
+            <input type="checkbox" checked={isConsignation} onChange={e => setIsConsignation(e.target.checked)} className="w-4 h-4 accent-primary" />
+            <span className="text-sm font-medium text-foreground">Venda em consignação</span>
+          </label>
+          {isConsignation && (
+            <Input placeholder="Consignatário (quem leva as peças) *" value={consigneeName} onChange={e => setConsigneeName(e.target.value)} className="h-10" />
+          )}
           <div>
             <label className="text-xs font-semibold text-foreground mb-1.5 block">Vendedor *</label>
-            <Input placeholder="Nome do vendedor" value={seller} onChange={e => setSeller(e.target.value)} className={cn("h-10", !seller.trim() && "border-primary ring-1 ring-primary/30")} />
+            {employees.length > 0 ? (
+              <Select value={seller} onValueChange={setSeller}>
+                <SelectTrigger className={cn("h-10", !seller.trim() && "border-primary ring-1 ring-primary/30")}>
+                  <SelectValue placeholder="Selecione o vendedor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {seller && !employees.some(e => e.name === seller) && (
+                    <SelectItem value={seller}>{seller}</SelectItem>
+                  )}
+                  {employees.map(e => <SelectItem key={e.id} value={e.name}>{e.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input placeholder="Nome do vendedor" value={seller} onChange={e => setSeller(e.target.value)} className={cn("h-10", !seller.trim() && "border-primary ring-1 ring-primary/30")} />
+            )}
           </div>
           <Input placeholder="Nome do cliente" value={customerName} onChange={e => setCustomerName(e.target.value)} className="h-10" />
           <Input placeholder="Telefone (opcional)" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} className="h-10" />
@@ -410,14 +449,16 @@ export default function PDV() {
             onChange={e => setDiscount(Number(e.target.value))}
             className="h-10"
           />
-          <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-            <SelectTrigger className="h-10"><SelectValue placeholder="Forma de pagamento" /></SelectTrigger>
-            <SelectContent>
-              {['Dinheiro', 'PIX', 'Cartão', 'Crédito da loja'].map(m => (
-                <SelectItem key={m} value={m}>{m}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {!isConsignation && (
+            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+              <SelectTrigger className="h-10"><SelectValue placeholder="Forma de pagamento" /></SelectTrigger>
+              <SelectContent>
+                {['Dinheiro', 'PIX', 'Cartão', 'Crédito da loja'].map(m => (
+                  <SelectItem key={m} value={m}>{m}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
 
           {paymentMethod === 'Dinheiro' && (
             <div className="space-y-2">
@@ -463,7 +504,7 @@ export default function PDV() {
             onClick={finalizeSale}
             disabled={loading || !cart.length}
           >
-            {loading ? 'Finalizando...' : 'Finalizar Venda'}
+            {loading ? 'Finalizando...' : isConsignation ? 'Enviar Consignação' : 'Finalizar Venda'}
           </Button>
         </div>
       </div>

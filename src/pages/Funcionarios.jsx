@@ -12,6 +12,7 @@ import { useStore } from '@/lib/StoreContext';
 import { useAuth } from '@/lib/AuthContext';
 import { STORE_ROLES, roleLabel } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
+import SellersManager from '@/components/SellersManager';
 
 const ROLE_BADGE = {
   owner: 'bg-primary/10 text-primary border-primary/20',
@@ -218,6 +219,9 @@ export default function Funcionarios() {
           </table>
         </div>
       </div>
+
+      {/* Vendedores / Equipe de vendas */}
+      <SellersManager />
 
       {/* Dialog de convite */}
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>

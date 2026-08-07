@@ -117,12 +117,39 @@
         "pendente"
       ],
       "default": "concluida"
+    },
+    "sale_type": {
+      "type": "string",
+      "enum": [
+        "venda",
+        "consignacao"
+      ],
+      "default": "venda",
+      "description": "Tipo: venda comum ou consigna\u00e7\u00e3o"
+    },
+    "consignment_status": {
+      "type": "string",
+      "enum": [
+        "em_consignacao",
+        "liquidada",
+        "devolvida",
+        "parcial"
+      ],
+      "description": "Status da consigna\u00e7\u00e3o"
+    },
+    "consignee_name": {
+      "type": "string",
+      "description": "Consignat\u00e1rio (quem recebe as pe\u00e7as em consigna\u00e7\u00e3o)"
+    },
+    "consignment_due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data limite para liquida\u00e7\u00e3o/devolu\u00e7\u00e3o da consigna\u00e7\u00e3o"
     }
   },
   "required": [
     "items",
-    "total",
-    "payment_method"
+    "total"
   ],
   "rls": {
     "read": {

@@ -9,10 +9,12 @@ export default function CategoryManager() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newName, setNewName] = useState('');
+  const [newCode, setNewCode] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
+  const [editCode, setEditCode] = useState('');
   const [editDesc, setEditDesc] = useState('');
 
   const load = () =>
@@ -27,11 +29,13 @@ export default function CategoryManager() {
     if (!newName.trim()) { toast.error('Nome obrigatório'); return; }
     await base44.entities.Category.create({
       name: newName.trim(),
+      code: newCode.trim(),
       description: newDesc.trim(),
       order: categories.length,
     });
     toast.success('Categoria criada');
     setNewName('');
+    setNewCode('');
     setNewDesc('');
     setAdding(false);
     load();
@@ -46,12 +50,13 @@ export default function CategoryManager() {
   const startEdit = (cat) => {
     setEditingId(cat.id);
     setEditName(cat.name);
+    setEditCode(cat.code || '');
     setEditDesc(cat.description || '');
   };
 
   const saveEdit = async (id) => {
     if (!editName.trim()) { toast.error('Nome obrigatório'); return; }
-    await base44.entities.Category.update(id, { name: editName.trim(), description: editDesc.trim() });
+    await base44.entities.Category.update(id, { name: editName.trim(), code: editCode.trim(), description: editDesc.trim() });
     toast.success('Categoria atualizada');
     setEditingId(null);
     load();
@@ -80,13 +85,22 @@ export default function CategoryManager() {
       {/* Add form */}
       {adding && (
         <div className="bg-accent/40 border border-border rounded-xl p-4 mb-4 space-y-3">
-          <Input
-            placeholder="Nome da categoria *"
-            value={newName}
-            onChange={e => setNewName(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleAdd()}
-            autoFocus
-          />
+          <div className="flex gap-2">
+            <Input
+              placeholder="Nome da categoria *"
+              value={newName}
+              onChange={e => setNewName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleAdd()}
+              className="flex-1"
+              autoFocus
+            />
+            <Input
+              placeholder="Código (ex: VST)"
+              value={newCode}
+              onChange={e => setNewCode(e.target.value)}
+              className="w-32"
+            />
+          </div>
           <Input
             placeholder="Descrição (opcional)"
             value={newDesc}
@@ -96,7 +110,7 @@ export default function CategoryManager() {
             <Button size="sm" onClick={handleAdd}>
               <Check className="w-4 h-4 mr-1" /> Salvar
             </Button>
-            <Button size="sm" variant="outline" onClick={() => { setAdding(false); setNewName(''); setNewDesc(''); }}>
+            <Button size="sm" variant="outline" onClick={() => { setAdding(false); setNewName(''); setNewCode(''); setNewDesc(''); }}>
               <X className="w-4 h-4 mr-1" /> Cancelar
             </Button>
           </div>
@@ -108,7 +122,7 @@ export default function CategoryManager() {
         {categories.length === 0 ? (
           <div className="text-center text-muted-foreground py-12">
             <p className="text-sm">Nenhuma categoria cadastrada.</p>
-            <p className="text-xs mt-1 text-muted-foreground/60">Crie categorias para organizar seus produtos.</p>
+            <p className="text-xs mt-1 text-muted-foreground/60">Crie categorias com códigos para consultar no PDV.</p>
           </div>
         ) : (
           <ul className="divide-y divide-border">
@@ -123,6 +137,12 @@ export default function CategoryManager() {
                       onChange={e => setEditName(e.target.value)}
                       className="h-8 text-sm flex-1 min-w-32"
                       autoFocus
+                    />
+                    <Input
+                      value={editCode}
+                      onChange={e => setEditCode(e.target.value)}
+                      placeholder="Código"
+                      className="h-8 text-sm w-28"
                     />
                     <Input
                       value={editDesc}
@@ -140,7 +160,12 @@ export default function CategoryManager() {
                 ) : (
                   <>
                     <div className="flex-1">
-                      <p className="text-sm font-medium">{cat.name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium">{cat.name}</p>
+                        {cat.code && (
+                          <span className="text-xs font-mono font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded">{cat.code}</span>
+                        )}
+                      </div>
                       {cat.description && <p className="text-xs text-muted-foreground mt-0.5">{cat.description}</p>}
                     </div>
                     <div className="flex gap-1 shrink-0">
