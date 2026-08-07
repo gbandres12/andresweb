@@ -10,7 +10,12 @@
       "type": "string"
     },
     "phone": {
-      "type": "string"
+      "type": "string",
+      "description": "Telefone principal de contato"
+    },
+    "whatsapp": {
+      "type": "string",
+      "description": "WhatsApp / n\u00famero para receber SMS de promo\u00e7\u00f5es e disparos"
     },
     "email": {
       "type": "string"
@@ -27,6 +32,21 @@
     },
     "notes": {
       "type": "string"
+    },
+    "marketing_opt_in": {
+      "type": "boolean",
+      "default": false,
+      "description": "Aceita receber promo\u00e7\u00f5es e disparos (consentimento LGPD)"
+    },
+    "marketing_channel": {
+      "type": "string",
+      "enum": [
+        "whatsapp",
+        "sms",
+        "ambos"
+      ],
+      "default": "whatsapp",
+      "description": "Canal preferido para campanhas"
     },
     "total_purchases": {
       "type": "number",

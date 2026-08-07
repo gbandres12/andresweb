@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Plus, Search, Edit2, Trash2, Trophy, ShoppingBag, TrendingUp } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Trophy, ShoppingBag, TrendingUp, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 export default function Clientes() {
   const [customers, setCustomers] = useState([]);
@@ -14,6 +17,7 @@ export default function Clientes() {
   const [editing, setEditing] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('lista'); // 'lista' | 'ranking'
+  const [promoOnly, setPromoOnly] = useState(false);
 
   const load = () => Promise.all([
     base44.entities.Customer.list('-created_date'),
@@ -35,10 +39,13 @@ export default function Clientes() {
     return Object.values(map).sort((a, b) => b.totalSpent - a.totalSpent).slice(0, 20);
   })();
 
+  const promoCount = customers.filter(c => c.marketing_opt_in).length;
   const filtered = customers.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
+    (c.name.toLowerCase().includes(search.toLowerCase()) ||
     c.phone?.includes(search) ||
-    c.email?.toLowerCase().includes(search.toLowerCase())
+    c.whatsapp?.includes(search) ||
+    c.email?.toLowerCase().includes(search.toLowerCase())) &&
+    (!promoOnly || c.marketing_opt_in)
   );
 
   const openEdit = (c) => { setEditing(c); setShowForm(true); };
@@ -156,7 +163,14 @@ export default function Clientes() {
       {tab === 'lista' && <>
       <div className="relative mb-6">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input placeholder="Buscar por nome, telefone ou e-mail..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 max-w-md" />
+        <Input placeholder="Buscar por nome, telefone, WhatsApp ou e-mail..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 max-w-md" />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <button onClick={() => setPromoOnly(p => !p)} className={cn("inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors", promoOnly ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-border text-muted-foreground hover:text-foreground")}>
+          <MessageCircle className="w-3.5 h-3.5" /> {promoCount} cliente(s) aceitam promoções
+          {promoOnly && <span className="text-emerald-700">· filtrando</span>}
+        </button>
       </div>
 
       <div className="bg-card rounded-2xl border border-border overflow-hidden">
@@ -166,6 +180,7 @@ export default function Clientes() {
               <th className="text-left px-5 py-3 text-xs font-sans font-medium text-muted-foreground uppercase tracking-wide">Nome</th>
               <th className="text-left px-4 py-3 text-xs font-sans font-medium text-muted-foreground uppercase tracking-wide hidden md:table-cell">Telefone</th>
               <th className="text-left px-4 py-3 text-xs font-sans font-medium text-muted-foreground uppercase tracking-wide hidden lg:table-cell">E-mail</th>
+              <th className="text-left px-4 py-3 text-xs font-sans font-medium text-muted-foreground uppercase tracking-wide hidden lg:table-cell">Promoções</th>
               <th className="text-left px-4 py-3 text-xs font-sans font-medium text-muted-foreground uppercase tracking-wide hidden sm:table-cell">Compras</th>
               <th className="px-4 py-3"></th>
             </tr>
@@ -183,11 +198,21 @@ export default function Clientes() {
                 </td>
                 <td className="px-4 py-3 text-sm text-muted-foreground hidden md:table-cell">{c.phone || '—'}</td>
                 <td className="px-4 py-3 text-sm text-muted-foreground hidden lg:table-cell">{c.email || '—'}</td>
+                <td className="px-4 py-3 hidden lg:table-cell">
+                  {c.marketing_opt_in
+                    ? <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full"><MessageCircle className="w-3 h-3" /> {c.marketing_channel || 'whatsapp'}</span>
+                    : <span className="text-xs text-muted-foreground">—</span>}
+                </td>
                 <td className="px-4 py-3 hidden sm:table-cell">
                   <span className="text-sm font-medium text-primary">R$ {(c.total_spent || 0).toFixed(2)}</span>
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex gap-1.5 justify-end">
+                    {c.whatsapp && (
+                      <a href={`https://wa.me/${c.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="p-1.5 rounded-lg hover:bg-emerald-50 text-emerald-600" title="Abrir WhatsApp">
+                        <MessageCircle className="w-3.5 h-3.5" />
+                      </a>
+                    )}
                     <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground">
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
@@ -220,11 +245,14 @@ function CustomerForm({ customer, onClose }) {
   const [form, setForm] = useState({
     name: customer?.name || '',
     phone: customer?.phone || '',
+    whatsapp: customer?.whatsapp || '',
     email: customer?.email || '',
     cpf: customer?.cpf || '',
     birthdate: customer?.birthdate || '',
     address: customer?.address || '',
     notes: customer?.notes || '',
+    marketing_opt_in: customer?.marketing_opt_in ?? false,
+    marketing_channel: customer?.marketing_channel || 'whatsapp',
   });
   const [saving, setSaving] = useState(false);
   const set = (f, v) => setForm(p => ({ ...p, [f]: v }));
@@ -251,13 +279,39 @@ function CustomerForm({ customer, onClose }) {
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-sm font-medium mb-1.5 block">Telefone / WhatsApp</label>
+          <label className="text-sm font-medium mb-1.5 block">Telefone</label>
           <Input value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="(00) 00000-0000" />
         </div>
         <div>
           <label className="text-sm font-medium mb-1.5 block">CPF</label>
           <Input value={form.cpf} onChange={e => set('cpf', e.target.value)} placeholder="000.000.000-00" />
         </div>
+      </div>
+      <div>
+        <label className="text-sm font-medium mb-1.5 block">WhatsApp para promoções / disparos</label>
+        <Input value={form.whatsapp} onChange={e => set('whatsapp', e.target.value)} placeholder="(00) 00000-0000" />
+      </div>
+      <div className="rounded-lg border border-border p-3 space-y-3 bg-muted/30">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium">Aceita receber promoções e disparos</p>
+            <p className="text-xs text-muted-foreground">O vendedor confirma o consentimento do cliente (LGPD).</p>
+          </div>
+          <Switch checked={!!form.marketing_opt_in} onCheckedChange={v => set('marketing_opt_in', v)} />
+        </div>
+        {form.marketing_opt_in && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Canal preferido:</span>
+            <Select value={form.marketing_channel} onValueChange={v => set('marketing_channel', v)}>
+              <SelectTrigger className="h-8 w-44 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                <SelectItem value="sms">SMS</SelectItem>
+                <SelectItem value="ambos">WhatsApp e SMS</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
       <div>
         <label className="text-sm font-medium mb-1.5 block">E-mail</label>
