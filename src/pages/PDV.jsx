@@ -40,6 +40,7 @@ export default function PDV() {
   const [employees, setEmployees] = useState([]);
   const [isConsignation, setIsConsignation] = useState(false);
   const [consigneeName, setConsigneeName] = useState('');
+  const [consignmentDueDate, setConsignationDueDate] = useState('');
   const gridRef = useRef(null);
   const { store } = useStore();
 
@@ -206,6 +207,7 @@ export default function PDV() {
       sale_type: isConsignation ? 'consignacao' : 'venda',
       consignment_status: isConsignation ? 'em_consignacao' : undefined,
       consignee_name: isConsignation ? consigneeName : undefined,
+      consignment_due_date: isConsignation ? (consignmentDueDate || undefined) : undefined,
     };
 
     const created = await base44.entities.Sale.create(saleData);
@@ -277,6 +279,7 @@ export default function PDV() {
     setSalesChannel('');
     setIsConsignation(false);
     setConsigneeName('');
+    setConsignationDueDate('');
     setShowSuccess(true);
     setLoading(false);
   };
@@ -420,7 +423,10 @@ export default function PDV() {
             <span className="text-sm font-medium text-foreground">Venda em consignação</span>
           </label>
           {isConsignation && (
-            <Input placeholder="Consignatário (quem leva as peças) *" value={consigneeName} onChange={e => setConsigneeName(e.target.value)} className="h-10" />
+            <>
+              <Input placeholder="Consignatário (quem leva as peças) *" value={consigneeName} onChange={e => setConsigneeName(e.target.value)} className="h-10" />
+              <Input type="date" value={consignmentDueDate} onChange={e => setConsignationDueDate(e.target.value)} className="h-10" />
+            </>
           )}
           <div>
             <label className="text-xs font-semibold text-foreground mb-1.5 block">Vendedor *</label>

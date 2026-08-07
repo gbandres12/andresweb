@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
-import { PackageCheck, Undo2, Loader2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, ShoppingCart, Undo2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { format, differenceInCalendarDays, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import NewConsignationDialog from '@/components/consignacao/NewConsignationDialog';
+import LiquidateDialog from '@/components/consignacao/LiquidateDialog';
 
 const STATUS_LABEL = {
   em_consignacao: 'Em consignação',
@@ -21,15 +24,18 @@ const STATUS_TONE = {
 };
 
 export default function Consignacoes() {
-  const [sales, setSales] = useState([]);
+  const [all, setAll] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(null);
+  const [filter, setFilter] = useState('todos');
+  const [newOpen, setNewOpen] = useState(false);
+  const [liquidate, setLiquidate] = useState(null);
 
   const load = async () => {
     setLoading(true);
     try {
       const list = await base44.entities.Sale.filter({ sale_type: 'consignacao' }, '-created_date', 200);
-      setSales(list || []);
+      setAll(list || []);
     } catch {
       toast.error('Erro ao carregar consignações');
     } finally {
@@ -39,73 +45,80 @@ export default function Consignacoes() {
 
   useEffect(() => { load(); }, []);
 
-  const liquidar = async (sale) => {
-    setBusy(sale.id);
-    try {
-      await base44.entities.Sale.update(sale.id, { status: 'concluida', consignment_status: 'liquidada' });
-      const month = format(new Date(), 'yyyy-MM');
-      await base44.entities.Transaction.create({
-        description: `Liquidação consignação ${sale.sale_number}`,
-        amount: sale.total,
-        type: 'receita',
-        category: 'Consignação',
-        customer_name: sale.consignee_name || sale.customer_name || '',
-        payment_method: 'Outros',
-        status: 'pago',
-        paid_date: format(new Date(), 'yyyy-MM-dd'),
-        month,
-        store_id: sale.store_id,
-      });
-      toast.success('Consignação liquidada e receita registrada');
-      load();
-    } catch {
-      toast.error('Erro ao liquidar consignação');
-    } finally {
-      setBusy(null);
-    }
-  };
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const isOpen = (c) => c.consignment_status === 'em_consignacao' || c.consignment_status === 'parcial';
+  const isOverdue = (c) => c.consignment_due_date && isOpen(c) && parseISO(c.consignment_due_date) < today;
 
-  const devolver = async (sale) => {
-    setBusy(sale.id);
+  const openCount = all.filter(isOpen).length;
+  const overdueCount = all.filter(isOverdue).length;
+  const openValue = all.filter(isOpen).reduce((a, c) => a + (c.total || 0), 0);
+  const liquidadaCount = all.filter(c => c.consignment_status === 'liquidada').length;
+
+  const filtered = all.filter(c => {
+    if (filter === 'todos') return true;
+    if (filter === 'abertas') return isOpen(c);
+    if (filter === 'vencidas') return isOverdue(c);
+    return c.consignment_status === filter;
+  });
+
+  const devolver = async (c) => {
+    const pcs = (c.items || []).reduce((a, i) => a + (i.quantity || 0), 0);
+    if (!window.confirm(`Devolver ${pcs} peça(s) ao estoque e encerrar esta consignação?`)) return;
+    setBusy(c.id);
     try {
-      for (const item of (sale.items || [])) {
-        const product = await base44.entities.Product.get(item.product_id);
-        const variants = (product.variants || []).map(v =>
-          (v.size === item.variant_size && v.color === item.variant_color)
-            ? { ...v, stock: (v.stock || 0) + (item.quantity || 0) }
+      for (const it of (c.items || [])) {
+        const prod = await base44.entities.Product.get(it.product_id);
+        const variants = (prod.variants || []).map(v =>
+          (v.size === it.variant_size && v.color === it.variant_color)
+            ? { ...v, stock: (v.stock || 0) + (it.quantity || 0) }
             : v
         );
-        await base44.entities.Product.update(item.product_id, { variants });
+        await base44.entities.Product.update(it.product_id, { variants });
+        await base44.entities.StockMovement.create({
+          product_id: it.product_id, product_name: it.product_name,
+          variant_size: it.variant_size, variant_color: it.variant_color,
+          type: 'entrada', quantity: it.quantity, reason: 'Devolução consignação', store_id: c.store_id,
+        });
       }
-      await base44.entities.Sale.update(sale.id, { status: 'cancelada', consignment_status: 'devolvida' });
-      toast.success('Consignação devolvida — estoque reposto');
+      await base44.entities.Sale.update(c.id, { consignment_status: 'devolvida', status: 'cancelada' });
+      toast.success('Itens devolvidos ao estoque');
       load();
     } catch {
-      toast.error('Erro ao devolver consignação');
+      toast.error('Erro ao devolver');
     } finally {
       setBusy(null);
     }
   };
 
-  if (loading) {
-    return <div className="flex items-center justify-center h-full py-24"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
-  }
+  const deadlineBadge = (c) => {
+    if (!c.consignment_due_date) return { label: 'Sem prazo', tone: 'bg-muted text-muted-foreground border-border' };
+    const due = parseISO(c.consignment_due_date);
+    if (isOpen(c)) {
+      const days = differenceInCalendarDays(due, today);
+      if (days < 0) return { label: 'Vencido', tone: 'bg-red-50 text-red-700 border-red-200' };
+      if (days <= 7) return { label: `Vence em ${days}d`, tone: 'bg-amber-50 text-amber-700 border-amber-200' };
+    }
+    return { label: format(due, 'dd/MM/yyyy'), tone: 'bg-muted text-muted-foreground border-border' };
+  };
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      <div>
-        <h1 className="font-serif text-2xl font-semibold text-foreground">Vendas em Consignação</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          Peças enviadas a consignatários. Liquide quando vender ou devolva para repor o estoque.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="font-serif text-2xl font-semibold text-foreground">Consignações</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Registre produtos enviados a parceiros, controle o prazo e converta o que foi vendido em venda.
+          </p>
+        </div>
+        <Button onClick={() => setNewOpen(true)}><Plus className="w-4 h-4 mr-1" /> Nova Consignação</Button>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Em consignação', value: sales.filter(s => s.consignment_status === 'em_consignacao').length, tone: 'text-amber-600' },
-          { label: 'Liquidadas', value: sales.filter(s => s.consignment_status === 'liquidada').length, tone: 'text-emerald-600' },
-          { label: 'Devolvidas', value: sales.filter(s => s.consignment_status === 'devolvida').length, tone: 'text-muted-foreground' },
-          { label: 'Valor em consignação', value: `R$ ${sales.filter(s => s.consignment_status === 'em_consignacao').reduce((a, s) => a + (s.total || 0), 0).toFixed(2).replace('.', ',')}`, tone: 'text-primary' },
+          { label: 'Em consignação', value: openCount, tone: 'text-amber-600' },
+          { label: 'Vencidas', value: overdueCount, tone: 'text-red-600' },
+          { label: 'Valor em consignação', value: `R$ ${openValue.toFixed(2).replace('.', ',')}`, tone: 'text-primary' },
+          { label: 'Liquidadas', value: liquidadaCount, tone: 'text-emerald-600' },
         ].map(k => (
           <div key={k.label} className="bg-card border border-border rounded-xl p-4">
             <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">{k.label}</p>
@@ -114,11 +127,28 @@ export default function Consignacoes() {
         ))}
       </div>
 
+      <div className="flex items-center gap-3">
+        <span className="text-sm text-muted-foreground font-medium">Filtrar:</span>
+        <Select value={filter} onValueChange={setFilter}>
+          <SelectTrigger className="h-9 w-52"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todas</SelectItem>
+            <SelectItem value="abertas">Em aberto</SelectItem>
+            <SelectItem value="vencidas">Vencidas</SelectItem>
+            <SelectItem value="parcial">Parciais</SelectItem>
+            <SelectItem value="liquidada">Liquidadas</SelectItem>
+            <SelectItem value="devolvida">Devolvidas</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="bg-card border border-border rounded-xl overflow-hidden">
-        {sales.length === 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+        ) : filtered.length === 0 ? (
           <div className="text-center text-muted-foreground py-16">
-            <p className="text-sm">Nenhuma venda em consignação registrada.</p>
-            <p className="text-xs mt-1 text-muted-foreground/60">No PDV, marque a opção "Venda em consignação" ao finalizar.</p>
+            <p className="text-sm">Nenhuma consignação neste filtro.</p>
+            <p className="text-xs mt-1 text-muted-foreground/60">Clique em "Nova Consignação" para registrar o envio de produtos.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -129,35 +159,40 @@ export default function Consignacoes() {
                   <th className="py-3 px-4 font-medium">Consignatário</th>
                   <th className="py-3 px-4 font-medium">Peças</th>
                   <th className="py-3 px-4 font-medium">Total</th>
+                  <th className="py-3 px-4 font-medium">Prazo</th>
                   <th className="py-3 px-4 font-medium">Status</th>
                   <th className="py-3 px-4 font-medium text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
-                {sales.map(s => {
-                  const pcs = (s.items || []).reduce((a, i) => a + (i.quantity || 0), 0);
-                  const open = s.consignment_status === 'em_consignacao';
+                {filtered.map(c => {
+                  const pcs = (c.items || []).reduce((a, i) => a + (i.quantity || 0), 0);
+                  const open = isOpen(c);
+                  const badge = deadlineBadge(c);
                   return (
-                    <tr key={s.id} className="border-t border-border">
+                    <tr key={c.id} className="border-t border-border">
                       <td className="py-3 px-5">
-                        <p className="font-medium text-foreground">{s.sale_number}</p>
-                        <p className="text-xs text-muted-foreground">{format(new Date(s.created_date), "dd/MM/yyyy HH:mm", { locale: ptBR })}</p>
+                        <p className="font-medium text-foreground">{c.sale_number}</p>
+                        <p className="text-xs text-muted-foreground">{format(new Date(c.created_date), "dd/MM/yyyy HH:mm", { locale: ptBR })}</p>
                       </td>
-                      <td className="py-3 px-4 text-foreground">{s.consignee_name || s.customer_name || '—'}</td>
-                      <td className="py-3 px-4 text-muted-foreground">{pcs} peça{pcs !== 1 ? 's' : ''}</td>
-                      <td className="py-3 px-4 font-semibold text-primary tabular-nums">R$ {(s.total || 0).toFixed(2).replace('.', ',')}</td>
+                      <td className="py-3 px-4 text-foreground">{c.consignee_name || c.customer_name || '—'}</td>
+                      <td className="py-3 px-4 text-muted-foreground">{pcs}</td>
+                      <td className="py-3 px-4 font-semibold text-primary tabular-nums">R$ {(c.total || 0).toFixed(2).replace('.', ',')}</td>
                       <td className="py-3 px-4">
-                        <span className={cn("text-xs font-medium rounded-full px-2.5 py-1 border", STATUS_TONE[s.consignment_status] || STATUS_TONE.em_consignacao)}>
-                          {STATUS_LABEL[s.consignment_status] || '—'}
+                        <span className={cn("text-xs font-medium rounded-full px-2.5 py-1 border", badge.tone)}>{badge.label}</span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={cn("text-xs font-medium rounded-full px-2.5 py-1 border", STATUS_TONE[c.consignment_status] || STATUS_TONE.em_consignacao)}>
+                          {STATUS_LABEL[c.consignment_status] || '—'}
                         </span>
                       </td>
                       <td className="py-3 px-4">
                         {open ? (
                           <div className="flex justify-end gap-2">
-                            <Button size="sm" variant="outline" onClick={() => liquidar(s)} disabled={busy === s.id} className="h-8 gap-1.5">
-                              <PackageCheck className="w-3.5 h-3.5" /> Liquidar
+                            <Button size="sm" onClick={() => setLiquidate(c)} disabled={busy === c.id} className="h-8 gap-1.5">
+                              <ShoppingCart className="w-3.5 h-3.5" /> Registrar venda
                             </Button>
-                            <Button size="sm" variant="outline" onClick={() => devolver(s)} disabled={busy === s.id} className="h-8 gap-1.5 hover:text-destructive hover:border-destructive/40">
+                            <Button size="sm" variant="outline" onClick={() => devolver(c)} disabled={busy === c.id} className="h-8 gap-1.5 hover:text-destructive hover:border-destructive/40">
                               <Undo2 className="w-3.5 h-3.5" /> Devolver
                             </Button>
                           </div>
@@ -173,6 +208,9 @@ export default function Consignacoes() {
           </div>
         )}
       </div>
+
+      <NewConsignationDialog open={newOpen} onOpenChange={setNewOpen} onCreated={load} />
+      <LiquidateDialog consignment={liquidate} onOpenChange={setLiquidate} onDone={load} />
     </div>
   );
 }
