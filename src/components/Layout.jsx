@@ -100,34 +100,34 @@ export default function Layout() {
       )}
 
       <aside className={cn(
-        "fixed lg:static inset-y-0 left-0 z-30 w-64 bg-card border-r border-border flex flex-col transition-transform duration-300",
+        "fixed lg:static inset-y-0 left-0 z-30 w-64 bg-sidebar border-r border-sidebar-border flex flex-col transition-transform duration-300",
         sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
         {/* Brand + Store */}
-        <div className="px-5 py-5 border-b border-border">
+        <div className="px-5 py-5 border-b border-sidebar-border">
           <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground text-xs font-serif font-semibold">S</span>
+            <div className="w-8 h-8 rounded-full bg-sidebar-primary flex items-center justify-center">
+              <span className="text-sidebar-primary-foreground text-xs font-serif font-semibold">S</span>
             </div>
             <div className="flex-1 min-w-0">
-              <h1 className="font-serif text-lg font-semibold text-foreground tracking-wide leading-tight">Andres WEB</h1>
-              <p className="text-[11px] text-muted-foreground font-sans leading-tight">Plataforma SaaS</p>
+              <h1 className="font-serif text-lg font-semibold text-sidebar-foreground tracking-wide leading-tight">Andres WEB</h1>
+              <p className="text-[11px] text-sidebar-foreground/50 font-sans leading-tight">Plataforma SaaS</p>
             </div>
           </div>
 
           {/* Store switcher */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg bg-accent/50 border border-accent hover:bg-accent transition-colors text-left">
-                <Building2 className="w-3.5 h-3.5 text-primary shrink-0" />
+              <button className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg bg-white/10 border border-white/15 hover:bg-white/15 transition-colors text-left">
+                <Building2 className="w-3.5 h-3.5 text-sidebar-foreground shrink-0" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11px] text-muted-foreground leading-none">Loja ativa</p>
-                  <p className="text-xs font-medium text-foreground truncate mt-0.5">{store?.name || '—'}</p>
+                  <p className="text-[11px] text-sidebar-foreground/50 leading-none">Loja ativa</p>
+                  <p className="text-xs font-medium text-sidebar-foreground truncate mt-0.5">{store?.name || '—'}</p>
                 </div>
-                <span className="text-[9px] uppercase tracking-wider bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-semibold">
+                <span className="text-[9px] uppercase tracking-wider bg-white/15 text-sidebar-foreground px-1.5 py-0.5 rounded-full font-semibold">
                   {store?.plan || 'free'}
                 </span>
-                <ChevronsUpDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                <ChevronsUpDown className="w-3.5 h-3.5 text-sidebar-foreground/50 shrink-0" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-56">
@@ -161,7 +161,7 @@ export default function Layout() {
         <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-4">
           {visibleGroups.map(group => (
             <div key={group.label}>
-              <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">{group.label}</p>
+              <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">{group.label}</p>
               <div className="space-y-0.5">
                 {group.items.map(({ path, label, icon: Icon }) => {
                   const active = location.pathname === path;
@@ -173,13 +173,13 @@ export default function Layout() {
                       className={cn(
                         "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-sans font-medium transition-all group",
                         active
-                          ? "bg-accent text-accent-foreground"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                          ? "bg-white/15 text-sidebar-foreground"
+                          : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-white/10"
                       )}
                     >
-                      <Icon className={cn("w-4 h-4 shrink-0", active ? "text-primary" : "")} />
+                      <Icon className={cn("w-4 h-4 shrink-0", active ? "text-sidebar-foreground" : "")} />
                       <span>{label}</span>
-                      {active && <ChevronRight className="w-3 h-3 ml-auto text-primary" />}
+                      {active && <ChevronRight className="w-3 h-3 ml-auto text-sidebar-foreground" />}
                     </Link>
                   );
                 })}
@@ -189,10 +189,10 @@ export default function Layout() {
         </nav>
 
         {/* Footer */}
-        <div className="px-3 py-3 border-t border-border">
+        <div className="px-3 py-3 border-t border-sidebar-border">
           <button
             onClick={() => base44.auth.logout()}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-sans font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-sans font-medium text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-white/10 transition-all"
           >
             <LogOut className="w-4 h-4" />
             <span>Sair</span>
