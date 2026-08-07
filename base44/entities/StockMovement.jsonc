@@ -2,6 +2,10 @@
   "name": "StockMovement",
   "type": "object",
   "properties": {
+    "store_id": {
+      "type": "string",
+      "description": "ID da loja (multi-tenant)"
+    },
     "product_id": {
       "type": "string"
     },
@@ -39,5 +43,55 @@
     "product_id",
     "type",
     "quantity"
-  ]
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.store_id": "{{user.data.store_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "data.store_id": "{{user.data.store_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.store_id": "{{user.data.store_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "data.store_id": "{{user.data.store_id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
 }

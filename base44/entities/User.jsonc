@@ -1,17 +1,30 @@
 {
+  "name": "User",
+  "type": "object",
   "properties": {
     "role": {
       "type": "string",
-      "description": "The role of the user in the app",
+      "description": "Papel do usu\u00e1rio na plataforma (admin = admin da plataforma SaaS, user = usu\u00e1rio de loja)",
       "enum": [
         "admin",
         "user"
       ]
+    },
+    "store_id": {
+      "type": "string",
+      "description": "ID da loja \u00e0 qual o usu\u00e1rio pertence (multi-tenant)"
+    },
+    "store_role": {
+      "type": "string",
+      "enum": [
+        "owner",
+        "manager",
+        "staff"
+      ],
+      "description": "Papel do usu\u00e1rio dentro da loja"
     }
   },
   "required": [
     "role"
-  ],
-  "name": "User",
-  "type": "object"
+  ]
 }
