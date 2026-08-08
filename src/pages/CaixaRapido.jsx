@@ -97,16 +97,13 @@ export default function CaixaRapido() {
   const addEntry = () => {
     const product = preview || resolveProduct(ref);
     if (!product) { toast.error('Referência não encontrada'); return; }
-    const variant = product.variants?.find(v => (v.stock || 0) > 0) || product.variants?.[0];
-    if (!variant) { toast.error('Produto sem variantes'); return; }
-    if ((variant.stock || 0) <= 0) { toast.error('Sem estoque'); return; }
+    // Permite adicionar mesmo sem estoque (venda sem estoque / reposição posterior). Usa variante em estoque se houver.
+    const variant = product.variants?.find(v => (v.stock || 0) > 0) || product.variants?.[0] || { size: '', color: '' };
     const q = Math.max(1, Number(qty) || 1);
-    if (q > (variant.stock || 0)) { toast.error(`Estoque insuficiente (${variant.stock} un)`); return; }
     const unit = effectivePrice(product, table, tables);
     const key = `${product.id}-${variant.size}-${variant.color}`;
     const existing = cart.find(i => i.key === key);
     if (existing) {
-      if (existing.quantity + q > (variant.stock || 0)) { toast.error('Estoque insuficiente'); return; }
       setCart(cart.map(i => i.key === key ? { ...i, quantity: i.quantity + q, total: (i.quantity + q) * i.unit_price } : i));
     } else {
       setCart([...cart, {
@@ -302,7 +299,7 @@ export default function CaixaRapido() {
           <div className="text-center flex-1">
             <h1 className="font-serif text-3xl font-semibold text-foreground">Caixa Rápido</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              {store?.name} · digite a quantidade, a referência e a tabela
+              Digite a quantidade, a referência e a tabela
             </p>
           </div>
           <button
@@ -468,7 +465,7 @@ export default function CaixaRapido() {
             </div>
             <Input placeholder="Nome do cliente (opcional)" value={customerName} onChange={e => setCustomerName(e.target.value)} className="h-11" />
             <Input placeholder="Telefone (opcional)" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} className="h-11" />
-            <Input placeholder="Consultor (opcional)" value={consultant} onChange={e => setConsultant(e.target.value)} className="h-11" />
+            <Input placeholder="Puxador (opcional)" value={consultant} onChange={e => setConsultant(e.target.value)} className="h-11" />
             <Input type="number" placeholder="Desconto (R$)" value={discount || ''} onChange={e => setDiscount(Number(e.target.value))} className="h-11" />
             <div className="sm:col-span-2">
               <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Forma de pagamento *</label>
