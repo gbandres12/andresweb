@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useStore } from '@/lib/StoreContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -34,12 +35,52 @@ function guessMonth(dateStr) {
   } catch { return format(new Date(), 'yyyy-MM'); }
 }
 
+// Extrai o número da venda do prefixo numérico da descrição (ex.: "56 Pagamento de Cliente em dinheiro" -> 56)
+function extractSaleNumber(desc) {
+  const m = String(desc || '').trim().match(/^(\d{1,5})\s+(.*)$/);
+  if (m) return { saleNumber: m[1], cleanDesc: m[2].trim() };
+  return { saleNumber: '', cleanDesc: String(desc || '').trim() };
+}
+
+// Limpa o terceiro: "DIVERSOS (DIARIA DO PUXADOR ALE..." -> "DIARIA DO PUXADOR ALE"
+function cleanCounterparty(cp) {
+  let s = String(cp || '').trim();
+  const m = s.match(/\(([^)]*)/);
+  if (m) s = m[1].trim();
+  return s.replace(/\.{2,}/g, '').replace(/\)+$/g, '').trim();
+}
+
+function guessPaymentMethod(desc) {
+  const s = String(desc || '').toLowerCase();
+  if (/pix/.test(s)) return 'PIX';
+  if (/cart[aã]o\s+d[eé]b/.test(s)) return 'Cartão de Débito';
+  if (/cart[aã]o\s+cr/.test(s) || /cart[aã]o/.test(s)) return 'Cartão de Crédito';
+  if (/transfer/.test(s)) return 'Transferência';
+  if (/dinheiro/.test(s)) return 'Dinheiro';
+  return 'Outros';
+}
+
+function guessDespesaCategory(desc) {
+  const s = String(desc || '').toLowerCase();
+  if (/sal[aá]r|pagamento dany|funcion/.test(s)) return 'Salários';
+  if (/fornecedor/.test(s)) return 'Fornecedores';
+  if (/aluguel/.test(s)) return 'Aluguel';
+  if (/energia|luz/.test(s)) return 'Energia';
+  if (/internet/.test(s)) return 'Internet';
+  if (/marketing|faceb|insta|an[uú]ncio/.test(s)) return 'Marketing';
+  if (/frete/.test(s)) return 'Frete';
+  if (/imposto/.test(s)) return 'Impostos';
+  if (/embalagem|sacola/.test(s)) return 'Embalagens';
+  return 'Outros';
+}
+
 export default function ContasImporter({ onClose, onImported }) {
+  const { store } = useStore();
   const [type, setType] = useState('pdf');
   const [file, setFile] = useState(null);
   const [fileUrl, setFileUrl] = useState('');
   const [working, setWorking] = useState(false);
-  const [stage, setStage] = useState(''); // 'extraindo' | 'classificando' | ''
+  const [stage, setStage] = useState('');
   const [items, setItems] = useState([]);
 
   const onFile = async (f) => {
@@ -57,18 +98,18 @@ export default function ContasImporter({ onClose, onImported }) {
     if (!fileUrl) { toast.error('Envie o arquivo primeiro'); return; }
     setWorking(true); setStage('extraindo'); setItems([]);
     try {
-      // 1) Extrai linhas brutas do arquivo (PDF/CSV/XLSX) — schema plano = uma linha; extrator retorna lista
+      // 1) Extrai linhas com colunas separadas de débito/crédito + terceiro + data + saldo
       const raw = await base44.integrations.Core.ExtractDataFromUploadedFile({
         file_url: fileUrl,
         json_schema: {
           type: 'object',
           properties: {
-            description: { type: 'string' },
-            amount: { type: 'number' },
-            date: { type: 'string' },
-            document_type: { type: 'string' },
-            counterparty: { type: 'string' },
-            notes: { type: 'string' },
+            description: { type: 'string', description: 'Texto da coluna Descrição' },
+            counterparty: { type: 'string', description: 'Texto da coluna Terceiro (quem pagou/recebeu, ex.: BALCAO NINA STAR, nome do cliente)' },
+            debito: { type: 'number', description: 'Valor da coluna Débito (saída). 0 se vazio' },
+            credito: { type: 'number', description: 'Valor da coluna Crédito (entrada). 0 se vazio' },
+            date: { type: 'string', description: 'Data do lançamento em ISO yyyy-mm-dd, se houver' },
+            saldo: { type: 'number', description: 'Saldo acumulado da linha, se houver' },
           },
         },
       });
@@ -76,68 +117,89 @@ export default function ContasImporter({ onClose, onImported }) {
       const rows = Array.isArray(raw.output) ? raw.output : (raw.output ? [raw.output] : []);
       if (!rows.length) { toast.error('Nenhum lançamento encontrado no arquivo'); setWorking(false); setStage(''); return; }
 
-      // 2) Classifica com IA: tipo, categoria, pagamento, status, vencimento, mês
+      // 2) Pré-processa: tipo e valor são determinísticos a partir de débito/crédito
+      const pre = rows.map(r => {
+        const debit = Number(r.debito || 0);
+        const credit = Number(r.credito || 0);
+        const type = credit > 0 ? 'receita' : (debit > 0 ? 'despesa' : 'despesa');
+        const amount = Math.abs(credit || debit || 0);
+        const { saleNumber } = extractSaleNumber(r.description);
+        return {
+          description: String(r.description || r.counterparty || 'Lançamento').trim(),
+          counterparty: cleanCounterparty(r.counterparty),
+          saleNumber,
+          date: r.date || '',
+          saldo: Number(r.saldo || 0),
+          debit, credit, amount, type,
+        };
+      }).filter(r => r.amount > 0 || (r.description && r.description !== 'Lançamento'));
+
+      // 3) IA apenas para categoria e forma de pagamento (tipo já está definido)
       setStage('classificando');
-      const llm = await base44.integrations.Core.InvokeLLM({
-        prompt:
-          'Você é um classificador financeiro de uma loja de roupas. Para cada lançamento, defina:\n' +
-          '- type: "receita" (entrada/dinheiro recebido/venda) ou "despesa" (saída/custo/boleto/fornecedor)\n' +
-          '- category: para despesa use um de ' + JSON.stringify(DESPESA_CATS) + '; para receita use um de ' + JSON.stringify(RECEITA_CATS) + '\n' +
-          '- payment_method: um de ' + JSON.stringify(PAYMENT_METHODS) + '\n' +
-          '- status: "pago" se já foi quitado/realizado, "pendente" se a pagar/a receber\n' +
-          '- due_date: data de vencimento em ISO yyyy-mm-dd (se houver), senão vazio\n' +
-          '- month: yyyy-mm de referência (do date/due_date), senão mês atual\n' +
-          'Mantenha a descrição original (corrija só erros óbvios). amount sempre positivo.\n' +
-          'Lançamentos:\n' + JSON.stringify(rows),
-        response_json_schema: {
-          type: 'object',
-          properties: {
-            entries: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  description: { type: 'string' },
-                  amount: { type: 'number' },
-                  type: { type: 'string', enum: ['receita', 'despesa'] },
-                  category: { type: 'string' },
-                  payment_method: { type: 'string' },
-                  status: { type: 'string', enum: ['pago', 'pendente', 'cancelado'] },
-                  due_date: { type: 'string' },
-                  month: { type: 'string' },
-                  notes: { type: 'string' },
+      let classified = [];
+      try {
+        const llm = await base44.integrations.Core.InvokeLLM({
+          prompt:
+            'Você é um classificador financeiro de uma loja de roupas. Para cada lançamento (com tipo já definido), defina apenas:\n' +
+            '- category: para despesa use um de ' + JSON.stringify(DESPESA_CATS) + '; para receita use um de ' + JSON.stringify(RECEITA_CATS) + '\n' +
+            '- payment_method: um de ' + JSON.stringify(PAYMENT_METHODS) + '\n' +
+            'Use a descrição e o terceiro para decidir. Mantenha EXATAMENTE a ordem e a quantidade dos lançamentos.\n' +
+            'Lançamentos:\n' + JSON.stringify(pre.map(p => ({ description: p.description, counterparty: p.counterparty, type: p.type, amount: p.amount }))),
+          response_json_schema: {
+            type: 'object',
+            properties: {
+              entries: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    category: { type: 'string' },
+                    payment_method: { type: 'string' },
+                  },
                 },
               },
             },
           },
-        },
-      });
-      const classified = llm.entries || llm;
+        });
+        classified = llm.entries || [];
+      } catch { classified = []; }
 
-      // 3) Mescla: prioriza valores classificados, preserva contraparte em notes se faltante
-      const merged = rows.map((r, i) => {
+      // 4) Mescla: deterministic type + sale number + counterparty + date; IA só enriquece categoria/pagamento
+      const merged = pre.map((r, i) => {
         const c = classified[i] || {};
+        const category = (r.type === 'receita' ? RECEITA_CATS : DESPESA_CATS).includes(c.category)
+          ? c.category
+          : (r.type === 'receita' ? 'Vendas' : guessDespesaCategory(r.description));
+        const payment_method = PAYMENT_METHODS.includes(c.payment_method)
+          ? c.payment_method
+          : guessPaymentMethod(r.description);
         return {
-          description: String(c.description || r.description || r.counterparty || 'Lançamento importado').trim(),
-          amount: Math.abs(Number(c.amount ?? r.amount ?? 0)) || 0,
-          type: c.type === 'receita' ? 'receita' : 'despesa',
-          category: c.category || (c.type === 'receita' ? 'Outros' : 'Outros'),
-          payment_method: PAYMENT_METHODS.includes(c.payment_method) ? c.payment_method : 'Outros',
-          status: ['pago', 'pendente', 'cancelado'].includes(c.status) ? c.status : 'pendente',
-          due_date: c.due_date || '',
-          month: c.month || guessMonth(c.due_date || r.date),
-          notes: c.notes || r.document_type || '',
+          description: r.description,
+          counterparty: r.counterparty,
+          sale_number: r.saleNumber,
+          date: r.date,
+          saldo: r.saldo,
+          amount: r.amount,
+          type: r.type,
+          category,
+          payment_method,
+          status: 'pago',
+          due_date: r.date || '',
+          paid_date: r.date || '',
+          month: guessMonth(r.date),
+          notes: r.saleNumber ? `Venda nº ${r.saleNumber}` : '',
         };
-      }).filter(it => it.description && it.description !== 'Lançamento importado' || it.amount > 0);
+      });
 
       setItems(merged);
       setStage('');
       if (!merged.length) toast.error('Não foi possível identificar lançamentos');
-      else toast.success(`${merged.length} lançamentos classificados pela IA`);
+      else toast.success(`${merged.length} lançamentos identificados`);
     } catch (e) {
       toast.error('Erro: ' + (e.message || ''));
     } finally {
-      setWorking(false); setStage('');
+      setWorking(false);
+      setStage('');
     }
   };
 
@@ -153,9 +215,18 @@ export default function ContasImporter({ onClose, onImported }) {
     setWorking(true);
     try {
       await base44.entities.Transaction.bulkCreate(items.map(it => ({
-        description: it.description, amount: it.amount, type: it.type, category: it.category,
-        payment_method: it.payment_method, status: it.status, due_date: it.due_date || undefined,
-        month: it.month, notes: it.notes,
+        store_id: store?.id,
+        description: it.description,
+        amount: it.amount,
+        type: it.type,
+        category: it.category,
+        payment_method: it.payment_method,
+        customer_name: it.counterparty || '',
+        status: it.status,
+        due_date: it.due_date || undefined,
+        paid_date: it.paid_date || undefined,
+        month: it.month,
+        notes: it.notes,
       })));
       toast.success(`${items.length} lançamentos importados`);
       reset();
@@ -210,11 +281,11 @@ export default function ContasImporter({ onClose, onImported }) {
       {items.length > 0 && (
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-center">
-            <p className="text-[11px] text-muted-foreground uppercase">Receitas</p>
+            <p className="text-[11px] text-muted-foreground uppercase">Receitas (crédito)</p>
             <p className="text-sm font-serif font-semibold text-green-700 tabular-nums">{fmtMoney(totalReceita)}</p>
           </div>
           <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-3 text-center">
-            <p className="text-[11px] text-muted-foreground uppercase">Despesas</p>
+            <p className="text-[11px] text-muted-foreground uppercase">Despesas (débito)</p>
             <p className="text-sm font-serif font-semibold text-destructive tabular-nums">{fmtMoney(totalDespesa)}</p>
           </div>
           <div className="bg-muted border border-border rounded-xl p-3 text-center">
@@ -230,16 +301,19 @@ export default function ContasImporter({ onClose, onImported }) {
       {items.length > 0 && (
         <div className="bg-card border border-border rounded-xl overflow-hidden">
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-muted/40">
-            <p className="text-sm font-semibold text-foreground">{items.length} lançamentos classificados</p>
+            <p className="text-sm font-semibold text-foreground">{items.length} lançamentos identificados</p>
             <button onClick={reset} className="text-xs text-muted-foreground hover:text-destructive flex items-center gap-1">
               <Trash2 className="w-3.5 h-3.5" /> Limpar
             </button>
           </div>
-          <div className="max-h-72 overflow-y-auto">
+          <div className="max-h-80 overflow-auto">
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-card z-10">
                 <tr className="border-b border-border">
                   <th className="text-left px-3 py-2 text-xs font-semibold uppercase text-muted-foreground">Descrição</th>
+                  <th className="text-left px-2 py-2 text-xs font-semibold uppercase text-muted-foreground hidden md:table-cell">Terceiro</th>
+                  <th className="text-left px-2 py-2 text-xs font-semibold uppercase text-muted-foreground">Nº</th>
+                  <th className="text-left px-2 py-2 text-xs font-semibold uppercase text-muted-foreground hidden lg:table-cell">Data</th>
                   <th className="text-left px-2 py-2 text-xs font-semibold uppercase text-muted-foreground">Tipo</th>
                   <th className="text-left px-2 py-2 text-xs font-semibold uppercase text-muted-foreground hidden md:table-cell">Categoria</th>
                   <th className="text-right px-2 py-2 text-xs font-semibold uppercase text-muted-foreground">Valor</th>
@@ -249,12 +323,27 @@ export default function ContasImporter({ onClose, onImported }) {
               <tbody>
                 {items.map((it, i) => (
                   <tr key={i} className="border-b border-border last:border-0 hover:bg-muted/20">
-                    <td className="px-3 py-1.5">
+                    <td className="px-3 py-1.5 align-top">
                       <Input value={it.description} onChange={e => update(i, { description: e.target.value })}
                         className="h-8 text-xs px-2 border-0 bg-transparent focus:bg-background" />
-                      <p className="text-[11px] text-muted-foreground px-2">{it.month}{it.due_date ? ` · venc ${format(parseISO(it.due_date + 'T00:00:00'), 'dd/MM')}` : ''}</p>
+                      <p className="text-[11px] text-muted-foreground px-2">
+                        {it.month}
+                        {it.saldo ? ` · saldo ${fmtMoney(it.saldo)}` : ''}
+                      </p>
                     </td>
-                    <td className="px-2 py-1.5">
+                    <td className="px-2 py-1.5 align-top hidden md:table-cell">
+                      <Input value={it.counterparty} onChange={e => update(i, { counterparty: e.target.value })}
+                        className="h-8 text-xs px-2 border-0 bg-transparent focus:bg-background" />
+                    </td>
+                    <td className="px-2 py-1.5 align-top">
+                      <Input value={it.sale_number} onChange={e => update(i, { sale_number: e.target.value })}
+                        className="h-8 w-12 text-xs px-2 tabular-nums border-0 bg-transparent focus:bg-background" />
+                    </td>
+                    <td className="px-2 py-1.5 align-top hidden lg:table-cell">
+                      <Input value={it.date} onChange={e => update(i, { date: e.target.value, due_date: e.target.value, paid_date: e.target.value, month: guessMonth(e.target.value) })}
+                        className="h-8 text-xs px-2 border-0 bg-transparent focus:bg-background" placeholder="aaaa-mm-dd" />
+                    </td>
+                    <td className="px-2 py-1.5 align-top">
                       <Select value={it.type} onValueChange={v => update(i, { type: v })}>
                         <SelectTrigger className="h-8 w-[88px] text-xs px-2"><SelectValue /></SelectTrigger>
                         <SelectContent>
@@ -263,22 +352,21 @@ export default function ContasImporter({ onClose, onImported }) {
                         </SelectContent>
                       </Select>
                     </td>
-                    <td className="px-2 py-1.5 hidden md:table-cell">
-                      <Select value={it.category}
-                        onValueChange={v => update(i, { category: v })}>
+                    <td className="px-2 py-1.5 align-top hidden md:table-cell">
+                      <Select value={it.category} onValueChange={v => update(i, { category: v })}>
                         <SelectTrigger className="h-8 w-[120px] text-xs px-2"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           {(it.type === 'receita' ? RECEITA_CATS : DESPESA_CATS).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </td>
-                    <td className="px-2 py-1.5 text-right">
+                    <td className="px-2 py-1.5 align-top text-right">
                       <Input type="number" min="0" step="0.01" value={it.amount}
                         onChange={e => update(i, { amount: Number(e.target.value) || 0 })}
                         className={cn("h-8 w-24 text-xs text-right tabular-nums px-2 border-0 bg-transparent focus:bg-background",
                           it.type === 'receita' ? "text-green-600" : "text-destructive")} />
                     </td>
-                    <td className="px-2 py-1.5">
+                    <td className="px-2 py-1.5 align-top">
                       <button onClick={() => remove(i)} className="p-1 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
