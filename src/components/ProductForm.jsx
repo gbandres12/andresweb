@@ -29,6 +29,7 @@ export default function ProductForm({ product, onClose }) {
     gtin: product?.gtin || '',
     sku: product?.sku || '',
     reference: product?.reference || '',
+    ncm: product?.ncm || '',
     tags: product?.tags || [],
     active_tables: product?.active_tables || [],
   });
@@ -203,6 +204,11 @@ Gere um SKU curto, até 12 caracteres, sem espaços, combinando iniciais da loja
             <Button type="button" variant="outline" onClick={generateReference}>Gerar</Button>
           </div>
           <p className="text-xs text-muted-foreground mt-1">Junta o código da categoria + preço em centavos.{refSuggestion ? ` Sugestão: ${refSuggestion}` : ''}</p>
+        </div>
+        <div className="col-span-2">
+          <label className="text-sm font-medium mb-1.5 block">NCM (código fiscal) *</label>
+          <Input value={form.ncm} onChange={e => set('ncm', e.target.value)} placeholder="Ex: 6104.42.00" />
+          <p className="text-xs text-muted-foreground mt-1">Necessário para emitir a nota fiscal na venda.</p>
         </div>
         <div className="col-span-2">
           <label className="text-sm font-medium mb-1.5 block">Descrição</label>

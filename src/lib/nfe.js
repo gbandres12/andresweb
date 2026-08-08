@@ -126,6 +126,7 @@ export async function processImport(targetStoreId, notas, markup, onProgress) {
           await base44.entities.Product.update(p.id, {
             variants,
             cost_price: item.vUnCom || p.cost_price,
+            ncm: p.ncm || item.ncm || '',
           });
           results.updated++;
         } else {
@@ -142,6 +143,7 @@ export async function processImport(targetStoreId, notas, markup, onProgress) {
             cost_price: item.vUnCom || 0,
             reference: refCode,
             sku: item.sku || '',
+            ncm: item.ncm || '',
             variants: [{ size: item.size, color: item.color, stock: item.qCom, sku: item.sku }],
             is_active: true,
             tags: [],

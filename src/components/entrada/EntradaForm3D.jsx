@@ -27,6 +27,7 @@ export default function EntradaForm3D({ initial = {}, images = [], onDone }) {
     size: 'M',
     color: initial.predominant_color && COLORS.includes(initial.predominant_color) ? initial.predominant_color : 'Preto',
     stock: initial.estimated_pieces ?? 1,
+    ncm: initial.ncm || '',
     is_active: true,
     is_featured: false,
   });
@@ -54,6 +55,7 @@ export default function EntradaForm3D({ initial = {}, images = [], onDone }) {
         category: form.category,
         price: Number(form.price),
         cost_price: Number(form.cost_price) || 0,
+        ncm: form.ncm?.trim() || '',
         images,
         variants: [{ size: form.size, color: form.color, stock, sku: '' }],
         is_active: form.is_active,
@@ -143,6 +145,11 @@ export default function EntradaForm3D({ initial = {}, images = [], onDone }) {
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold uppercase tracking-wide">Quantidade no fardo (estoque)</Label>
           <Input type="number" value={form.stock} onChange={e => set('stock', e.target.value)} className="h-10 tabular-nums" />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold uppercase tracking-wide">NCM (código fiscal)</Label>
+          <Input value={form.ncm} onChange={e => set('ncm', e.target.value)} placeholder="Ex: 6104.42.00" className="h-10" />
         </div>
 
         <div className="flex items-center gap-6 pt-1">

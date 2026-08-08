@@ -70,6 +70,7 @@ function parseXML(txt) {
       color: get('cor, color'), size: get('tamanho, size, tam'),
       description: get('descricao, description'), sku: get('sku, codigo, cProd, cod'),
       reference: get('referencia, ref, referencia_loja'),
+      ncm: get('NCM, ncm, cod_ncm, codigo_ncm, NCMProduto'),
     });
   });
   return out;
@@ -112,6 +113,7 @@ function parseCSV(text) {
     description: ['descricao', 'description', 'observacao', 'obs'],
     sku: ['sku', 'codigo_interno', 'codigo', 'cprod', 'cod'],
     reference: ['referencia_loja', 'referencia_da_loja', 'codigo_loja', 'ref_loja', 'referencia', 'ref'],
+    ncm: ['ncm', 'cod_ncm', 'codigo_ncm', 'codigo_nbm', 'nbm'],
   };
   const headers = rows[0].map(normHeader);
   const map = {};
@@ -206,6 +208,7 @@ export default function FileImporter() {
               cost_price: { type: 'number' }, quantity: { type: 'number' }, color: { type: 'string' },
               size: { type: 'string' }, description: { type: 'string' }, sku: { type: 'string' },
               reference: { type: 'string' },
+              ncm: { type: 'string' },
             },
           },
         });
@@ -230,6 +233,7 @@ export default function FileImporter() {
           description: (p.description || p.descricao || '').trim(),
           sku: (p.sku || '').toString().trim(),
           reference,
+          ncm: (p.ncm || '').toString().trim(),
         };
       }).filter(p => p.name !== 'Produto importado' || p.price > 0);
 
@@ -249,7 +253,7 @@ export default function FileImporter() {
     try {
       const products = items.map(it => ({
         name: it.name, description: it.description, category: it.category, price: it.price,
-        cost_price: it.cost_price, reference: it.reference, store_id: store?.id,
+        cost_price: it.cost_price, reference: it.reference, ncm: it.ncm, store_id: store?.id,
         variants: [{ size: it.size, color: it.color, stock: it.stock, sku: it.sku }],
         is_active: true, tags: [],
       }));
@@ -356,6 +360,7 @@ export default function FileImporter() {
                     <td className="px-4 py-2.5">
                       <p className="text-sm font-medium text-foreground truncate max-w-[200px]">{it.name}</p>
                       <p className="text-xs text-muted-foreground">{it.color} · {it.size}</p>
+                      {it.ncm ? <p className="text-[10px] text-muted-foreground/70 tabular-nums">NCM {it.ncm}</p> : <p className="text-[10px] text-amber-600">NCM não encontrado</p>}
                     </td>
                     <td className="px-3 py-2.5 hidden sm:table-cell">
                       <span className="text-xs font-mono font-semibold text-primary tabular-nums">{it.reference || '—'}</span>
