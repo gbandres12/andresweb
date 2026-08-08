@@ -26,6 +26,27 @@ function fmtMoney(v) {
   return (n < 0 ? '-' : '') + 'R$ ' + Math.abs(n).toFixed(2).replace('.', ',');
 }
 
+// Converte strings monetárias BR ("R$ 1.621,00", "63,00", "1.621") em número.
+// Number() puro devolve NaN para esses formatos — por isso os valores sumiam.
+function parseMoney(v) {
+  if (v == null) return 0;
+  if (typeof v === 'number') return Math.abs(v);
+  let s = String(v).trim().replace(/R\$/gi, '').replace(/\s/g, '');
+  if (!s) return 0;
+  s = s.replace(/[^\d.,-]/g, '');
+  if (!s) return 0;
+  if (s.includes(',') && s.includes('.')) {
+    s = s.replace(/\./g, '').replace(',', '.');
+  } else if (s.includes(',')) {
+    s = s.replace(',', '.');
+  } else if (s.includes('.')) {
+    const parts = s.split('.');
+    if (parts.length === 2 && parts[1].length === 3) s = parts.join('');
+  }
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : Math.abs(n);
+}
+
 function guessMonth(dateStr) {
   if (!dateStr) return format(new Date(), 'yyyy-MM');
   try {
@@ -119,8 +140,8 @@ export default function ContasImporter({ onClose, onImported }) {
 
       // 2) Pré-processa: tipo e valor são determinísticos a partir de débito/crédito
       const pre = rows.map(r => {
-        const debit = Number(r.debito || 0);
-        const credit = Number(r.credito || 0);
+        const debit = parseMoney(r.debito);
+        const credit = parseMoney(r.credito);
         const type = credit > 0 ? 'receita' : (debit > 0 ? 'despesa' : 'despesa');
         const amount = Math.abs(credit || debit || 0);
         const { saleNumber } = extractSaleNumber(r.description);
@@ -129,7 +150,7 @@ export default function ContasImporter({ onClose, onImported }) {
           counterparty: cleanCounterparty(r.counterparty),
           saleNumber,
           date: r.date || '',
-          saldo: Number(r.saldo || 0),
+          saldo: parseMoney(r.saldo),
           debit, credit, amount, type,
         };
       }).filter(r => r.amount > 0 || (r.description && r.description !== 'Lançamento'));
