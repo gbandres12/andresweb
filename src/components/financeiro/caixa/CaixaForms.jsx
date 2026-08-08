@@ -3,9 +3,11 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 const METHODS = ['Dinheiro', 'PIX', 'Cartão'];
 const fmt = v => 'R$ ' + (Number(v) || 0).toFixed(2).replace('.', ',');
+const nf = v => (Number(v) || 0).toFixed(2).replace('.', ',');
 
 export function OpenRegisterForm({ onOpen, onClose }) {
   const [balance, setBalance] = useState('');
@@ -72,22 +74,70 @@ export function MovementForm({ kind, onSubmit, onClose }) {
 }
 
 export function CloseConfirmForm({ totals, onConfirm, onClose }) {
+  const CLOSE_METHODS = ['Dinheiro', 'PIX', 'Cartão', 'Consignado'];
+  const [counted, setCounted] = useState({
+    Dinheiro: totals?.Dinheiro || 0,
+    PIX: totals?.PIX || 0,
+    Cartão: totals?.Cartão || 0,
+    Consignado: totals?.Consignado || 0,
+  });
+  const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const diffOf = m => (Number(counted[m]) || 0) - (totals?.[m] || 0);
+  const countedTotal = CLOSE_METHODS.reduce((s, m) => s + (Number(counted[m]) || 0), 0);
+  const totalDiff = countedTotal - (totals?.total || 0);
 
   const confirm = async () => {
     setSaving(true);
-    try { await onConfirm(); } finally { setSaving(false); }
+    try {
+      await onConfirm({
+        counted_dinheiro: Number(counted.Dinheiro) || 0,
+        counted_pix: Number(counted.PIX) || 0,
+        counted_cartao: Number(counted.Cartão) || 0,
+        counted_consignado: Number(counted.Consignado) || 0,
+        notes: notes.trim(),
+      });
+    } finally { setSaving(false); }
   };
 
   return (
     <div className="space-y-4">
-      <div className="bg-muted rounded-xl p-4 space-y-1.5 text-sm">
-        <div className="flex justify-between"><span>Dinheiro</span><span className="font-medium tabular-nums">{fmt(totals.Dinheiro)}</span></div>
-        <div className="flex justify-between"><span>PIX</span><span className="font-medium tabular-nums">{fmt(totals.PIX)}</span></div>
-        <div className="flex justify-between"><span>Cartão</span><span className="font-medium tabular-nums">{fmt(totals.Cartão)}</span></div>
-        <div className="flex justify-between border-t border-border pt-1.5 mt-1.5 font-serif font-semibold"><span>Total Geral</span><span className="tabular-nums">{fmt(totals.total)}</span></div>
+      <p className="text-xs text-muted-foreground">Informe quanto você <strong>contou</strong> de cada forma. A diferença em relação ao esperado fica registrada no log do gerente.</p>
+      <div className="space-y-2.5">
+        {CLOSE_METHODS.map(m => {
+          const d = diffOf(m);
+          const ok = Math.abs(d) < 0.005;
+          return (
+            <div key={m} className="grid grid-cols-12 items-center gap-2">
+              <span className="col-span-3 text-sm font-medium">{m}</span>
+              <span className="col-span-4 text-[11px] text-muted-foreground tabular-nums">esperado {fmt(totals?.[m] || 0)}</span>
+              <Input
+                type="number" min="0" step="0.01"
+                className="col-span-3 h-8 text-sm tabular-nums"
+                value={counted[m]}
+                onChange={e => setCounted(c => ({ ...c, [m]: e.target.value }))}
+              />
+              <span className={cn('col-span-2 text-right text-xs font-medium tabular-nums', ok ? 'text-green-600' : 'text-amber-600')}>
+                {ok ? 'ok' : `${d > 0 ? '+' : ''}${nf(d)}`}
+              </span>
+            </div>
+          );
+        })}
       </div>
-      <p className="text-xs text-muted-foreground">Confirme o fechamento. Os valores acima serão registrados no caixa.</p>
+      <div className="flex justify-between items-center border-t border-border pt-2.5 text-sm">
+        <div>
+          <p className="font-serif font-semibold">Total contado <span className="tabular-nums">{fmt(countedTotal)}</span></p>
+          <p className="text-xs text-muted-foreground">Esperado geral {fmt(totals?.total || 0)}</p>
+        </div>
+        <span className={cn('text-sm font-semibold tabular-nums', Math.abs(totalDiff) < 0.005 ? 'text-green-600' : 'text-amber-600')}>
+          {Math.abs(totalDiff) < 0.005 ? 'ok' : `diff ${totalDiff > 0 ? '+' : ''}${nf(totalDiff)}`}
+        </span>
+      </div>
+      <div>
+        <label className="text-sm font-medium mb-1.5 block">Observações do fechamento</label>
+        <Input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Ex: faltou R$ 10 em dinheiro..." />
+      </div>
       <div className="flex gap-3">
         <Button variant="outline" onClick={onClose} className="flex-1">Cancelar</Button>
         <Button onClick={confirm} disabled={saving} className="flex-1">{saving ? 'Fechando...' : 'Confirmar Fechamento'}</Button>

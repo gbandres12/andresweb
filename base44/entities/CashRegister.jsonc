@@ -41,22 +41,51 @@
     "closing_balance": {
       "type": "number",
       "default": 0,
-      "description": "Saldo final no fechamento"
+      "description": "Total contado no fechamento"
     },
     "expected_dinheiro": {
       "type": "number",
-      "default": 0
+      "default": 0,
+      "description": "Dinheiro esperado (abertura + vendas + suprimentos - sangrias)"
     },
     "expected_pix": {
       "type": "number",
-      "default": 0
+      "default": 0,
+      "description": "PIX esperado"
     },
     "expected_cartao": {
       "type": "number",
-      "default": 0
+      "default": 0,
+      "description": "Cart\u00e3o esperado"
+    },
+    "expected_consignado": {
+      "type": "number",
+      "default": 0,
+      "description": "Consignado esperado (vendas em consigna\u00e7\u00e3o do per\u00edodo)"
+    },
+    "counted_dinheiro": {
+      "type": "number",
+      "default": 0,
+      "description": "Dinheiro contado pela operadora no fechamento"
+    },
+    "counted_pix": {
+      "type": "number",
+      "default": 0,
+      "description": "PIX contado no fechamento"
+    },
+    "counted_cartao": {
+      "type": "number",
+      "default": 0,
+      "description": "Cart\u00e3o contado no fechamento"
+    },
+    "counted_consignado": {
+      "type": "number",
+      "default": 0,
+      "description": "Consignado declarado no fechamento"
     },
     "notes": {
-      "type": "string"
+      "type": "string",
+      "description": "Observa\u00e7\u00f5es do fechamento (ex: faltas/sobras)"
     }
   },
   "required": [

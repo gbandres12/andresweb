@@ -9,7 +9,6 @@ import ContasManager from '@/components/financeiro/ContasManager';
 import DespesasManager from '@/components/financeiro/DespesasManager';
 import CaixaManager from '@/components/financeiro/CaixaManager';
 import ConciliacaoManager from '@/components/financeiro/ConciliacaoManager';
-import CaixaMovimentacoes from '@/components/financeiro/CaixaMovimentacoes';
 import ComissoesManager from '@/components/financeiro/ComissoesManager';
 
 export default function Financeiro() {
@@ -54,7 +53,6 @@ export default function Financeiro() {
           <TabsTrigger value="contas">Contas</TabsTrigger>
           <TabsTrigger value="despesas">Despesas</TabsTrigger>
           <TabsTrigger value="caixa">Caixa</TabsTrigger>
-          <TabsTrigger value="movimentacoes">Movimentações</TabsTrigger>
           <TabsTrigger value="conciliacao">Conciliação</TabsTrigger>
           <TabsTrigger value="comissoes">Comissões</TabsTrigger>
         </TabsList>
@@ -89,10 +87,6 @@ export default function Financeiro() {
 
         <TabsContent value="caixa">
           <CaixaManager sales={sales} />
-        </TabsContent>
-
-        <TabsContent value="movimentacoes">
-          <CaixaMovimentacoes />
         </TabsContent>
 
         <TabsContent value="conciliacao">
