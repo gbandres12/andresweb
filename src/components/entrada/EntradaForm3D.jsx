@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, useMotionValue, useTransform, useSpring } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
+import { useStore } from '@/lib/StoreContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,6 +17,7 @@ const SIZES = ["PP", "P", "M", "G", "GG", "EG", "Único"];
 const COLORS = ["Preto", "Branco", "Bege", "Cinza", "Azul Marinho", "Azul", "Vermelho", "Rosa", "Verde", "Amarelo", "Marrom", "Estampado", "Outro"];
 
 export default function EntradaForm3D({ initial = {}, images = [], onDone }) {
+  const { store } = useStore();
   const [form, setForm] = useState({
     name: initial.suggested_name || '',
     description: initial.observations || '',
@@ -46,6 +48,7 @@ export default function EntradaForm3D({ initial = {}, images = [], onDone }) {
       const stock = Math.max(0, Math.round(Number(form.stock) || 0));
       const tags = [initial.season, initial.fabric].filter(Boolean);
       const product = await base44.entities.Product.create({
+        store_id: store?.id,
         name: form.name.trim(),
         description: form.description || '',
         category: form.category,
@@ -59,6 +62,7 @@ export default function EntradaForm3D({ initial = {}, images = [], onDone }) {
       });
       if (stock > 0) {
         await base44.entities.StockMovement.create({
+          store_id: store?.id,
           product_id: product.id,
           product_name: product.name,
           variant_size: form.size,

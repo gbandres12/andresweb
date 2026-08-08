@@ -12,6 +12,7 @@ import { effectivePrice, getStoreTables, getStorePaymentMethods, getPaymentMetho
 import { createConsignmentReceivable } from '@/lib/consignment';
 import { useStore } from '@/lib/StoreContext';
 import { useNavigate } from 'react-router-dom';
+import PrintCupomButton from '@/components/pdv/ControlCupom';
 
 const SALES_CHANNELS = ['Loja Física', 'WhatsApp', 'Instagram', 'Facebook', 'Site / E-commerce', 'Telefone', 'Indicação', 'Feira / Evento', 'Outros'];
 
@@ -37,7 +38,7 @@ export default function CaixaRapido() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [seller, setSeller] = useState('');
   const [consultant, setConsultant] = useState('');
-  const [salesChannel, setSalesChannel] = useState('');
+  const [salesChannel, setSalesChannel] = useState('Loja Física');
   const [cashReceived, setCashReceived] = useState('');
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -47,6 +48,7 @@ export default function CaixaRapido() {
 
   const qtyRef = useRef(null);
   const refRef = useRef(null);
+  const searchTimer = useRef(null);
 
   useEffect(() => {
     base44.auth.me().then(u => setSeller(u?.full_name || '')).catch(() => {});
@@ -88,14 +90,36 @@ export default function CaixaRapido() {
     ) || null;
   };
 
-  const onRefChange = (v) => {
-    setRef(v);
-    const p = resolveProduct(v);
-    setPreview(p || null);
+  // Busca por nome no servidor (além dos produtos carregados localmente) — automatizada e debounced.
+  const resolveProductAsync = async (term) => {
+    const local = resolveProduct(term);
+    if (local) return local;
+    const t = (term || '').trim();
+    if (t.length < 2) return null;
+    try {
+      const list = await base44.entities.Product.filter(
+        { name: { $regex: t, $options: 'i' }, is_active: true }, '-created_date', 10
+      );
+      return (list && list[0]) || null;
+    } catch { return null; }
   };
 
-  const addEntry = () => {
-    const product = preview || resolveProduct(ref);
+  const onRefChange = (v) => {
+    setRef(v);
+    const local = resolveProduct(v);
+    if (local) { setPreview(local); return; }
+    setPreview(null);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    const term = (v || '').trim();
+    if (term.length < 2) return;
+    searchTimer.current = setTimeout(async () => {
+      const p = await resolveProductAsync(term);
+      setPreview(p || null);
+    }, 350);
+  };
+
+  const addEntry = async () => {
+    const product = preview || await resolveProductAsync(ref);
     if (!product) { toast.error('Referência não encontrada'); return; }
     // Permite adicionar mesmo sem estoque (venda sem estoque / reposição posterior). Usa variante em estoque se houver.
     const variant = product.variants?.find(v => (v.stock || 0) > 0) || product.variants?.[0] || { size: '', color: '' };
@@ -116,11 +140,11 @@ export default function CaixaRapido() {
     setTimeout(() => refRef.current?.focus(), 0);
   };
 
-  const onRefKey = (e) => {
+  const onRefKey = async (e) => {
     if (e.key !== 'Enter') return;
     e.preventDefault();
-    if (preview) addEntry();
-    else if (ref.trim()) toast.error('Referência não encontrada');
+    if (!ref.trim() && !preview) return;
+    await addEntry();
   };
 
   const updateQty = (key, delta) => {
@@ -164,7 +188,6 @@ export default function CaixaRapido() {
   const finalizeSale = async () => {
     if (!cart.length) { toast.error('Carrinho vazio'); return; }
     if (!paymentMethod) { toast.error('Selecione o pagamento'); return; }
-    if (!salesChannel) { toast.error('Selecione o canal de venda'); return; }
     if (!seller.trim()) { toast.error('Informe o vendedor'); return; }
     if (paymentMethod === 'Consignação' && !customerName.trim()) { toast.error('Informe o nome do cliente (consignatário) para gerar a fatura'); return; }
 
@@ -211,7 +234,7 @@ export default function CaixaRapido() {
     setLoading(true);
     const isConsignacao = paymentMethod === 'Consignação';
     const saleNum = isConsignacao ? await genFaturaNumber() : `VND-${Date.now().toString().slice(-6)}`;
-    await base44.entities.Sale.create({
+    const created = await base44.entities.Sale.create({
       store_id: store?.id,
       sale_number: saleNum,
       items: cart.map(({ key, ...i }) => i),
@@ -285,7 +308,7 @@ export default function CaixaRapido() {
           ? { ...v, stock: Math.max(0, (v.stock || 0) - ci.quantity) } : v) };
     }));
 
-    setLastSale({ num: saleNum, total, troco, cashReceived: cashReceivedNum, paymentMethod, isConsignacao: paymentMethod === 'Consignação' });
+    setLastSale({ num: saleNum, total, troco, cashReceived: cashReceivedNum, paymentMethod, isConsignacao: paymentMethod === 'Consignação', sale: created });
     setCart([]); setDiscount(0); setPaymentMethod(''); setCashReceived('');
     setCustomerName(''); setCustomerPhone(''); setConsultant(''); setSalesChannel('');
     setShowSuccess(true); setLoading(false);
@@ -448,7 +471,7 @@ export default function CaixaRapido() {
           </div>
           <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Canal de venda *</label>
+              <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Canal de venda</label>
               <Select value={salesChannel} onValueChange={setSalesChannel}>
                 <SelectTrigger className="h-11"><SelectValue placeholder="De onde veio a venda?" /></SelectTrigger>
                 <SelectContent>{SALES_CHANNELS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
@@ -531,6 +554,9 @@ export default function CaixaRapido() {
                 </p>
               )}
             </div>
+            {!lastSale.isConsignacao && (
+              <PrintCupomButton sale={lastSale.sale} store={store} variant="outline" className="w-full h-11" />
+            )}
             <Button onClick={() => { setShowSuccess(false); refRef.current?.focus(); }} className="w-full h-11">Nova Venda</Button>
           </div>
         </DialogContent>

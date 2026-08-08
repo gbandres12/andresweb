@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import TabelaPrecoManager from '@/components/config/TabelaPrecoManager';
 import CostCenterManager from '@/components/config/CostCenterManager';
 import PaymentMethodsManager from '@/components/config/PaymentMethodsManager';
+import CupomConfig from '@/components/config/CupomConfig';
 
 export default function Configuracoes() {
   const [tab, setTab] = useState('tabelas');
@@ -17,10 +18,12 @@ export default function Configuracoes() {
           <TabsTrigger value="tabelas">Tabelas de Preço</TabsTrigger>
           <TabsTrigger value="pagamentos">Formas de Pagamento</TabsTrigger>
           <TabsTrigger value="centros">Centros de Custo</TabsTrigger>
+          <TabsTrigger value="cupom">Cupom de Controle</TabsTrigger>
         </TabsList>
         <TabsContent value="tabelas" className="mt-5"><TabelaPrecoManager /></TabsContent>
         <TabsContent value="pagamentos" className="mt-5"><PaymentMethodsManager /></TabsContent>
         <TabsContent value="centros" className="mt-5"><CostCenterManager /></TabsContent>
+        <TabsContent value="cupom" className="mt-5"><CupomConfig /></TabsContent>
       </Tabs>
     </div>
   );

@@ -12,6 +12,7 @@ import { usePaginatedProducts } from '@/hooks/usePaginatedProducts';
 import { effectivePrice, getStoreTables } from '@/lib/priceTables';
 import { useStore } from '@/lib/StoreContext';
 import ExchangeDialog from '@/components/exchange/ExchangeDialog';
+import PrintCupomButton from '@/components/pdv/ControlCupom';
 import CategoryReference from '@/components/pdv/CategoryReference';
 
 const PAGE_SIZE = 40;
@@ -27,13 +28,14 @@ export default function PDV() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [lastSaleNum, setLastSaleNum] = useState('');
   const [lastSaleInfo, setLastSaleInfo] = useState({ total: 0, troco: 0, cashReceived: 0, paymentMethod: '' });
+  const [lastSale, setLastSale] = useState(null);
   const [loading, setLoading] = useState(false);
   const [selectedVariants, setSelectedVariants] = useState({});
   const [priceTable, setPriceTable] = useState('cliente_final');
   const [scan, setScan] = useState('');
   const [seller, setSeller] = useState('');
   const [consultant, setConsultant] = useState('');
-  const [salesChannel, setSalesChannel] = useState('');
+  const [salesChannel, setSalesChannel] = useState('Loja Física');
   const [inadimplencia, setInadimplencia] = useState(null);
   const [cashReceived, setCashReceived] = useState('');
   const [exchangeOpen, setExchangeOpen] = useState(false);
@@ -136,7 +138,6 @@ export default function PDV() {
       return doFinalize(null);
     }
     if (!paymentMethod) { toast.error('Selecione o pagamento'); return; }
-    if (!salesChannel) { toast.error('Selecione o canal de venda'); return; }
     if (!seller.trim()) { toast.error('Informe o vendedor'); return; }
 
     // Crédito da loja: valida saldo do cliente antes de finalizar
@@ -268,6 +269,7 @@ export default function PDV() {
     }
 
     setLastSaleNum(saleNum);
+    setLastSale(created);
     setLastSaleInfo({ total, troco, cashReceived: cashReceivedNum, paymentMethod });
     setCart([]);
     setDiscount(0);
@@ -409,7 +411,7 @@ export default function PDV() {
         {/* Summary & checkout */}
         <div className="p-5 border-t border-border space-y-3">
           <div>
-            <label className="text-xs font-semibold text-foreground mb-1.5 block">Canal de venda *</label>
+            <label className="text-xs font-semibold text-foreground mb-1.5 block">Canal de venda</label>
             <Select value={salesChannel} onValueChange={setSalesChannel}>
               <SelectTrigger className={cn("h-10", !salesChannel && "border-primary ring-1 ring-primary/30")}>
                 <SelectValue placeholder="De onde veio esta venda?" />
@@ -535,6 +537,9 @@ export default function PDV() {
                 </p>
               )}
             </div>
+            {lastSale && lastSale.sale_type !== 'consignacao' && (
+              <PrintCupomButton sale={lastSale} store={store} variant="outline" className="w-full h-11" />
+            )}
             <Button onClick={() => setShowSuccess(false)} className="w-full h-11">Nova Venda</Button>
           </div>
         </DialogContent>
