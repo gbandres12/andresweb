@@ -3,8 +3,8 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { canAccess, homeForRole } from '@/lib/permissions';
 import {
-  LayoutDashboard, ShoppingCart, Package, BarChart3,
-  Users, Menu, X, Store as StoreIcon, ChevronRight, LogOut, Wallet, Calculator,
+  LayoutDashboard, ShoppingCart, Package, BarChart3, PackagePlus,
+  Users, Menu, X, Store as StoreIcon, ChevronRight, ChevronDown, LogOut, Wallet, Calculator,
   Building2, ScanLine, FileText, Check, ChevronsUpDown, Plus, Settings, Globe, PieChart, ShieldAlert, ArrowLeftRight, RefreshCw, PackageCheck
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
@@ -38,11 +38,13 @@ const navGroups = [
     label: 'Estoque & Produtos',
     items: [
       { path: '/produtos', label: 'Produtos', icon: Package },
-      { path: '/estoque', label: 'Estoque', icon: BarChart3 },
-      { path: '/transferencias', label: 'Transferências', icon: ArrowLeftRight },
-      { path: '/entrada-inteligente', label: 'Entrada IA', icon: ScanLine },
-      { path: '/importar-nfe', label: 'Importar NFe', icon: FileText },
-      { path: '/pesquisa-global', label: 'Pesquisa Global', icon: Globe },
+      { path: '/estoque', label: 'Estoque', icon: BarChart3, children: [
+        { path: '/estoque/entrada', label: 'Entrada de Estoque', icon: PackagePlus },
+        { path: '/importar-nfe', label: 'Importar NFe', icon: FileText },
+        { path: '/entrada-inteligente', label: 'Entrada IA', icon: ScanLine },
+        { path: '/transferencias', label: 'Transferências', icon: ArrowLeftRight },
+        { path: '/pesquisa-global', label: 'Pesquisa Global', icon: Globe },
+      ]},
     ],
   },
   {
@@ -62,6 +64,60 @@ const navGroups = [
     ],
   },
 ];
+
+function NavItem({ item, location, onNavigate }) {
+  const Icon = item.icon;
+  const active = location.pathname === item.path;
+  const hasChildren = !!item.children?.length;
+  const childActive = hasChildren && item.children.some(c => location.pathname === c.path);
+  const [open, setOpen] = useState(childActive);
+
+  if (!hasChildren) {
+    return (
+      <Link to={item.path} onClick={onNavigate} className={cn(
+        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-sans font-medium transition-all",
+        active ? "bg-white/15 text-sidebar-foreground" : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-white/10"
+      )}>
+        <Icon className={cn("w-4 h-4 shrink-0", active && "text-sidebar-foreground")} />
+        <span>{item.label}</span>
+        {active && <ChevronRight className="w-3 h-3 ml-auto text-sidebar-foreground" />}
+      </Link>
+    );
+  }
+  return (
+    <div>
+      <div className="flex items-center">
+        <Link to={item.path} onClick={onNavigate} className={cn(
+          "flex-1 flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-sans font-medium transition-all",
+          (active || childActive) ? "bg-white/15 text-sidebar-foreground" : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-white/10"
+        )}>
+          <Icon className={cn("w-4 h-4 shrink-0", (active || childActive) && "text-sidebar-foreground")} />
+          <span>{item.label}</span>
+        </Link>
+        <button onClick={() => setOpen(o => !o)} className="p-1.5 -ml-1 text-sidebar-foreground/60 hover:text-sidebar-foreground">
+          <ChevronDown className={cn("w-4 h-4 transition-transform", open && "rotate-180")} />
+        </button>
+      </div>
+      {open && (
+        <div className="mt-0.5 ml-5 pl-3 border-l border-sidebar-border/50 space-y-0.5">
+          {item.children.map(c => {
+            const CIcon = c.icon;
+            const cActive = location.pathname === c.path;
+            return (
+              <Link key={c.path} to={c.path} onClick={onNavigate} className={cn(
+                "flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-sans font-medium transition-all",
+                cActive ? "bg-white/15 text-sidebar-foreground" : "text-sidebar-foreground/55 hover:text-sidebar-foreground hover:bg-white/10"
+              )}>
+                <CIcon className="w-3.5 h-3.5 shrink-0" />
+                <span>{c.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -165,26 +221,9 @@ export default function Layout() {
             <div key={group.label}>
               <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">{group.label}</p>
               <div className="space-y-0.5">
-                {group.items.map(({ path, label, icon: Icon }) => {
-                  const active = location.pathname === path;
-                  return (
-                    <Link
-                      key={path}
-                      to={path}
-                      onClick={() => setSidebarOpen(false)}
-                      className={cn(
-                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-sans font-medium transition-all group",
-                        active
-                          ? "bg-white/15 text-sidebar-foreground"
-                          : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-white/10"
-                      )}
-                    >
-                      <Icon className={cn("w-4 h-4 shrink-0", active ? "text-sidebar-foreground" : "")} />
-                      <span>{label}</span>
-                      {active && <ChevronRight className="w-3 h-3 ml-auto text-sidebar-foreground" />}
-                    </Link>
-                  );
-                })}
+                {group.items.map((item) => (
+                  <NavItem key={item.path} item={item} location={location} onNavigate={() => setSidebarOpen(false)} />
+                ))}
               </div>
             </div>
           ))}

@@ -14,12 +14,20 @@ const ROLES = [
   { key: 'caixa', label: 'Caixa' },
 ];
 
+const SALARY_TYPE_LABEL = {
+  diario: 'Diário',
+  semanal: 'Semanal',
+  mensal: 'Mensal',
+  comissionado: 'Comissionado',
+  na_carteira: 'Na carteira',
+};
+
 export default function SellersManager() {
   const { store, stores } = useStore();
   const [sellers, setSellers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
-  const [form, setForm] = useState({ name: '', role: 'vendedor', phone: '' });
+  const [form, setForm] = useState({ name: '', role: 'vendedor', phone: '', salary: '', salary_type: 'comissionado', payment_method: 'PIX' });
   const [extraStores, setExtraStores] = useState([]);
   const [saving, setSaving] = useState(false);
 
@@ -47,12 +55,15 @@ export default function SellersManager() {
         name: form.name.trim(),
         role: form.role,
         phone: form.phone.trim(),
+        salary: Number(form.salary) || 0,
+        salary_type: form.salary_type,
+        payment_method: form.payment_method,
         store_id: store?.id,
         store_ids: extraStores,
         active: true,
       });
       toast.success('Vendedor adicionado');
-      setForm({ name: '', role: 'vendedor', phone: '' });
+      setForm({ name: '', role: 'vendedor', phone: '', salary: '', salary_type: 'comissionado', payment_method: 'PIX' });
       setExtraStores([]);
       setAdding(false);
       load();
@@ -111,6 +122,23 @@ export default function SellersManager() {
               </SelectContent>
             </Select>
             <Input placeholder="Telefone (opcional)" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} />
+            <Input type="number" placeholder="Salário (R$)" value={form.salary} onChange={e => setForm({ ...form, salary: e.target.value })} />
+            <Select value={form.salary_type} onValueChange={v => setForm({ ...form, salary_type: v })}>
+              <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="diario">Diário</SelectItem>
+                <SelectItem value="semanal">Semanal</SelectItem>
+                <SelectItem value="mensal">Mensal</SelectItem>
+                <SelectItem value="comissionado">Comissionado</SelectItem>
+                <SelectItem value="na_carteira">Na carteira</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={form.payment_method} onValueChange={v => setForm({ ...form, payment_method: v })}>
+              <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {['Dinheiro', 'PIX', 'Cartão', 'Transferência'].map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           {otherStores.length > 0 && (
             <div>
@@ -159,6 +187,9 @@ export default function SellersManager() {
               <tr className="text-left text-muted-foreground">
                 <th className="py-3 px-5 font-medium">Vendedor</th>
                 <th className="py-3 px-4 font-medium">Função</th>
+                <th className="py-3 px-4 font-medium">Salário</th>
+                <th className="py-3 px-4 font-medium">Tipo</th>
+                <th className="py-3 px-4 font-medium">Pagamento</th>
                 <th className="py-3 px-4 font-medium">Lojas</th>
                 <th className="py-3 px-4 font-medium">Status</th>
                 <th className="py-3 px-4 font-medium text-right">Ações</th>
@@ -181,6 +212,9 @@ export default function SellersManager() {
                       </div>
                     </td>
                     <td className="py-3 px-4 text-muted-foreground capitalize">{s.role}</td>
+                    <td className="py-3 px-4 tabular-nums">{s.salary ? `R$ ${Number(s.salary).toFixed(2).replace('.', ',')}` : '—'}</td>
+                    <td className="py-3 px-4 text-muted-foreground text-xs">{SALARY_TYPE_LABEL[s.salary_type] || '—'}</td>
+                    <td className="py-3 px-4 text-muted-foreground text-xs">{s.payment_method || '—'}</td>
                     <td className="py-3 px-4 text-muted-foreground text-xs">{storeNames.join(', ') || '—'}</td>
                     <td className="py-3 px-4">
                       <button

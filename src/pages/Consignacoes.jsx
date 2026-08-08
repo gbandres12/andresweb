@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, ShoppingCart, Undo2, Loader2 } from 'lucide-react';
+import { Plus, Undo2, Loader2, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, differenceInCalendarDays, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import NewConsignationDialog from '@/components/consignacao/NewConsignationDialog';
-import LiquidateDialog from '@/components/consignacao/LiquidateDialog';
+import PaymentDialog from '@/components/consignacao/PaymentDialog';
 
 const STATUS_LABEL = {
   em_consignacao: 'Em consignação',
@@ -29,7 +29,7 @@ export default function Consignacoes() {
   const [busy, setBusy] = useState(null);
   const [filter, setFilter] = useState('todos');
   const [newOpen, setNewOpen] = useState(false);
-  const [liquidate, setLiquidate] = useState(null);
+  const [payment, setPayment] = useState(null);
 
   const load = async () => {
     setLoading(true);
@@ -159,6 +159,8 @@ export default function Consignacoes() {
                   <th className="py-3 px-4 font-medium">Consignatário</th>
                   <th className="py-3 px-4 font-medium">Peças</th>
                   <th className="py-3 px-4 font-medium">Total</th>
+                  <th className="py-3 px-4 font-medium">Pago</th>
+                  <th className="py-3 px-4 font-medium">Saldo</th>
                   <th className="py-3 px-4 font-medium">Prazo</th>
                   <th className="py-3 px-4 font-medium">Status</th>
                   <th className="py-3 px-4 font-medium text-right">Ações</th>
@@ -167,6 +169,8 @@ export default function Consignacoes() {
               <tbody>
                 {filtered.map(c => {
                   const pcs = (c.items || []).reduce((a, i) => a + (i.quantity || 0), 0);
+                  const paid = (c.consignment_payments || []).reduce((a, p) => a + (p.amount || 0), 0);
+                  const balance = Math.max(0, (c.total || 0) - paid);
                   const open = isOpen(c);
                   const badge = deadlineBadge(c);
                   return (
@@ -178,6 +182,8 @@ export default function Consignacoes() {
                       <td className="py-3 px-4 text-foreground">{c.consignee_name || c.customer_name || '—'}</td>
                       <td className="py-3 px-4 text-muted-foreground">{pcs}</td>
                       <td className="py-3 px-4 font-semibold text-primary tabular-nums">R$ {(c.total || 0).toFixed(2).replace('.', ',')}</td>
+                      <td className="py-3 px-4 text-emerald-700 tabular-nums">R$ {paid.toFixed(2).replace('.', ',')}</td>
+                      <td className="py-3 px-4 text-destructive tabular-nums">R$ {balance.toFixed(2).replace('.', ',')}</td>
                       <td className="py-3 px-4">
                         <span className={cn("text-xs font-medium rounded-full px-2.5 py-1 border", badge.tone)}>{badge.label}</span>
                       </td>
@@ -189,8 +195,8 @@ export default function Consignacoes() {
                       <td className="py-3 px-4">
                         {open ? (
                           <div className="flex justify-end gap-2">
-                            <Button size="sm" onClick={() => setLiquidate(c)} disabled={busy === c.id} className="h-8 gap-1.5">
-                              <ShoppingCart className="w-3.5 h-3.5" /> Registrar venda
+                            <Button size="sm" onClick={() => setPayment(c)} disabled={busy === c.id} className="h-8 gap-1.5">
+                              <Wallet className="w-3.5 h-3.5" /> Pagamento
                             </Button>
                             <Button size="sm" variant="outline" onClick={() => devolver(c)} disabled={busy === c.id} className="h-8 gap-1.5 hover:text-destructive hover:border-destructive/40">
                               <Undo2 className="w-3.5 h-3.5" /> Devolver
@@ -210,7 +216,7 @@ export default function Consignacoes() {
       </div>
 
       <NewConsignationDialog open={newOpen} onOpenChange={setNewOpen} onCreated={load} />
-      <LiquidateDialog consignment={liquidate} onOpenChange={setLiquidate} onDone={load} />
+      <PaymentDialog consignment={payment} onOpenChange={setPayment} onDone={load} />
     </div>
   );
 }

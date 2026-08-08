@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Trash2, Plus, Search, Loader2, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 import { getStoreTables, effectivePrice } from '@/lib/priceTables';
 
 const variantKey = (v) => `${v.size || ''}|${v.color || ''}`;
@@ -26,6 +27,8 @@ export default function NewConsignationDialog({ open, onOpenChange, onCreated })
   const [dueDate, setDueDate] = useState('');
   const [items, setItems] = useState([]);
   const [pick, setPick] = useState({});
+  const [initialPayment, setInitialPayment] = useState(0);
+  const [initialMethod, setInitialMethod] = useState('PIX');
   const [saving, setSaving] = useState(false);
   const [addingCust, setAddingCust] = useState(false);
 
@@ -96,6 +99,9 @@ export default function NewConsignationDialog({ open, onOpenChange, onCreated })
           type: 'saida', quantity: it.quantity, reason: 'Consignação', store_id: store?.id,
         });
       }
+      const paid = Number(initialPayment) || 0;
+      const fullyPaid = paid > 0 && paid >= total;
+      const consPayments = paid > 0 ? [{ amount: paid, method: initialMethod, date: format(new Date(), 'yyyy-MM-dd') }] : [];
       await base44.entities.Sale.create({
         store_id: store?.id,
         sale_number: saleNumber,
@@ -103,15 +109,31 @@ export default function NewConsignationDialog({ open, onOpenChange, onCreated })
         subtotal: total, total,
         price_table: priceTable,
         sale_type: 'consignacao',
-        consignment_status: 'em_consignacao',
-        status: 'pendente',
+        consignment_status: fullyPaid ? 'liquidada' : 'em_consignacao',
+        status: fullyPaid ? 'concluida' : 'pendente',
+        consignment_payments: consPayments,
+        consignment_paid: paid,
         consignee_name: consigneeName.trim(),
         customer_id: selectedCustomerId || undefined,
         customer_name: consigneeName.trim(),
         consignment_due_date: dueDate,
       });
-      toast.success('Consignação registrada');
-      setConsigneeName(''); setSelectedCustomerId(''); setDueDate(''); setItems([]); setSearch(''); setPick({}); setShowNewCust(false); setNewCustName(''); setNewCustPhone('');
+      if (paid > 0) {
+        try {
+          await base44.entities.Transaction.create({
+            store_id: store?.id,
+            description: `Pagamento consignação ${saleNumber}`,
+            amount: paid, type: 'receita', category: 'Consignação',
+            customer_name: consigneeName.trim(),
+            customer_id: selectedCustomerId || undefined,
+            payment_method: initialMethod === 'Cartão' ? 'Cartão de Crédito' : initialMethod,
+            status: 'pago', paid_date: format(new Date(), 'yyyy-MM-dd'),
+            month: format(new Date(), 'yyyy-MM'),
+          });
+        } catch { /* ignore */ }
+      }
+      toast.success(fullyPaid ? 'Consignação registrada e liquidada' : 'Consignação registrada');
+      setConsigneeName(''); setSelectedCustomerId(''); setDueDate(''); setItems([]); setSearch(''); setPick({}); setShowNewCust(false); setNewCustName(''); setNewCustPhone(''); setInitialPayment(0); setInitialMethod('PIX');
       onCreated?.();
       onOpenChange(false);
     } catch {
@@ -221,6 +243,20 @@ export default function NewConsignationDialog({ open, onOpenChange, onCreated })
               </div>
             </div>
           )}
+
+          <div className="border border-border rounded-lg p-3 space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground">Pagamento inicial (opcional)</p>
+            <div className="flex gap-2">
+              <Input type="number" min="0" placeholder="Valor pago agora (ex: 1000)" value={initialPayment || ''} onChange={e => setInitialPayment(Number(e.target.value) || 0)} className="h-9" />
+              <Select value={initialMethod} onValueChange={setInitialMethod}>
+                <SelectTrigger className="h-9 w-36"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {['Dinheiro', 'PIX', 'Cartão'].map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-xs text-muted-foreground">Deixe 0 para registrar apenas a saída e cobrar depois em parcelas. O restante é pago em "Pagamento" na lista de consignações.</p>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
