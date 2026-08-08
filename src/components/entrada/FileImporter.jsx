@@ -58,6 +58,10 @@ export default function FileImporter() {
 
   const onFile = async (f) => {
     if (!f) return;
+    if (/\.xls$/i.test(f.name) && !/\.xlsx$/i.test(f.name)) {
+      toast.error('Formato .xls não é suportado. Salve o arquivo como .xlsx ou .csv no Excel e tente novamente.');
+      return;
+    }
     setFile(f); setFileUrl(''); setItems([]);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file: f });
@@ -81,23 +85,15 @@ export default function FileImporter() {
           json_schema: {
             type: 'object',
             properties: {
-              items: {
-                type: 'array',
-                items: {
-                  type: 'object',
-                  properties: {
-                    name: { type: 'string' }, category: { type: 'string' }, price: { type: 'number' },
-                    cost_price: { type: 'number' }, quantity: { type: 'number' }, color: { type: 'string' },
-                    size: { type: 'string' }, description: { type: 'string' }, sku: { type: 'string' },
-                  },
-                },
-              },
+              name: { type: 'string' }, category: { type: 'string' }, price: { type: 'number' },
+              cost_price: { type: 'number' }, quantity: { type: 'number' }, color: { type: 'string' },
+              size: { type: 'string' }, description: { type: 'string' }, sku: { type: 'string' },
             },
           },
         });
         if (res.status !== 'success') throw new Error(res.details || 'Falha na extração');
         const out = res.output;
-        parsed = Array.isArray(out) ? out : (out?.items || []);
+        parsed = Array.isArray(out) ? out : (out ? [out] : []);
       }
       const norm = parsed.map(p => ({
         name: String(p.name || p.nome || 'Produto importado').trim(),
@@ -177,7 +173,7 @@ export default function FileImporter() {
       <label className="block cursor-pointer">
         <input
           type="file"
-          accept={type === 'xml' ? '.xml,text/xml' : type === 'pdf' ? '.pdf,application/pdf' : '.csv,.xlsx,.xls,text/csv'}
+          accept={type === 'xml' ? '.xml,text/xml' : type === 'pdf' ? '.pdf,application/pdf' : '.csv,.xlsx,text/csv'}
           className="hidden"
           onChange={e => onFile(e.target.files?.[0])}
         />
