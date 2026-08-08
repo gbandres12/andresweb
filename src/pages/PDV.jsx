@@ -592,13 +592,9 @@ function ProductCard({ product, onAdd, selectedVariants, setSelectedVariants, pr
       "bg-card border border-border rounded-xl p-3 flex flex-col gap-2 hover:border-primary/40 transition-all",
       stock === 0 && "opacity-60"
     )}>
-      {product.images?.[0] ? (
-        <img src={product.images[0]} alt={product.name} className="w-full aspect-square object-cover rounded-lg" />
-      ) : (
-        <div className="w-full aspect-square bg-muted rounded-lg flex items-center justify-center">
-          <span className="text-3xl">👗</span>
-        </div>
-      )}
+      <div className="bg-muted/60 rounded-lg px-3 py-2 border border-border">
+        <p className="text-[11px] font-sans font-medium text-muted-foreground uppercase tracking-wide">Ref. {product.reference || '—'}</p>
+      </div>
       <div>
         <p className="text-sm font-medium truncate text-foreground">{product.name}</p>
         <p className="text-xs text-muted-foreground">{product.category}</p>

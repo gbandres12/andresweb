@@ -27,6 +27,7 @@ const navGroups = [
     label: 'Operação',
     items: [
       { path: '/pdv', label: 'PDV / Caixa', icon: ShoppingCart },
+      { path: '/caixa-rapido', label: 'Caixa Rápido', icon: ScanLine },
       { path: '/vendas', label: 'Vendas', icon: StoreIcon },
       { path: '/trocas', label: 'Trocas', icon: RefreshCw },
       { path: '/consignacoes', label: 'Consignações', icon: PackageCheck },

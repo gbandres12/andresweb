@@ -12,11 +12,11 @@ export const STORE_ROLES = [
 const ACCESS = {
   owner: null, // null = acesso total
   manager: [
-    '/pdv', '/produtos', '/entrada-inteligente', '/importar-nfe', '/estoque',
+    '/pdv', '/caixa-rapido', '/produtos', '/entrada-inteligente', '/importar-nfe', '/estoque',
     '/clientes', '/vendas', '/trocas', '/financeiro', '/calculadora',
     '/pesquisa-global', '/relatorios', '/transferencias',
   ],
-  staff: ['/pdv', '/clientes', '/vendas', '/trocas'],
+  staff: ['/pdv', '/caixa-rapido', '/clientes', '/vendas', '/trocas'],
 };
 
 export function roleLabel(key) {

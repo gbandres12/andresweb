@@ -9,6 +9,7 @@ import Layout from '@/components/Layout';
 import { StoreProvider } from '@/lib/StoreContext';
 import Dashboard from '@/pages/Dashboard';
 import PDV from '@/pages/PDV';
+import CaixaRapido from '@/pages/CaixaRapido';
 import Produtos from '@/pages/Produtos';
 import Estoque from '@/pages/Estoque';
 import Vendas from '@/pages/Vendas';
@@ -67,6 +68,7 @@ const AuthenticatedApp = () => {
       <Route element={<StoreProvider><Layout /></StoreProvider>}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/pdv" element={<PDV />} />
+        <Route path="/caixa-rapido" element={<CaixaRapido />} />
         <Route path="/produtos" element={<Produtos />} />
         <Route path="/estoque" element={<Estoque />} />
         <Route path="/estoque/entrada" element={<EntradaEstoque />} />
