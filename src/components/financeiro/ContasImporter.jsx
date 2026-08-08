@@ -57,31 +57,23 @@ export default function ContasImporter({ onClose, onImported }) {
     if (!fileUrl) { toast.error('Envie o arquivo primeiro'); return; }
     setWorking(true); setStage('extraindo'); setItems([]);
     try {
-      // 1) Extrai linhas brutas do arquivo (PDF/CSV/XLSX)
+      // 1) Extrai linhas brutas do arquivo (PDF/CSV/XLSX) — schema plano = uma linha; extrator retorna lista
       const raw = await base44.integrations.Core.ExtractDataFromUploadedFile({
         file_url: fileUrl,
         json_schema: {
           type: 'object',
           properties: {
-            entries: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  description: { type: 'string' },
-                  amount: { type: 'number' },
-                  date: { type: 'string' },
-                  document_type: { type: 'string' },
-                  counterparty: { type: 'string' },
-                  notes: { type: 'string' },
-                },
-              },
-            },
+            description: { type: 'string' },
+            amount: { type: 'number' },
+            date: { type: 'string' },
+            document_type: { type: 'string' },
+            counterparty: { type: 'string' },
+            notes: { type: 'string' },
           },
         },
       });
       if (raw.status !== 'success') throw new Error(raw.details || 'Falha na extração');
-      const rows = Array.isArray(raw.output) ? raw.output : (raw.output?.entries || []);
+      const rows = Array.isArray(raw.output) ? raw.output : (raw.output ? [raw.output] : []);
       if (!rows.length) { toast.error('Nenhum lançamento encontrado no arquivo'); setWorking(false); setStage(''); return; }
 
       // 2) Classifica com IA: tipo, categoria, pagamento, status, vencimento, mês
