@@ -64,11 +64,13 @@ const AuthenticatedApp = () => {
       {/* Public catalog — no layout wrapper */}
       <Route path="/catalogo" element={<Catalogo />} />
 
+      {/* Caixa Rápido — tela cheia, sem menu lateral (ESC para sair) */}
+      <Route path="/caixa-rapido" element={<StoreProvider><CaixaRapido /></StoreProvider>} />
+
       {/* Admin app with sidebar layout */}
       <Route element={<StoreProvider><Layout /></StoreProvider>}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/pdv" element={<PDV />} />
-        <Route path="/caixa-rapido" element={<CaixaRapido />} />
         <Route path="/produtos" element={<Produtos />} />
         <Route path="/estoque" element={<Estoque />} />
         <Route path="/estoque/entrada" element={<EntradaEstoque />} />

@@ -10,12 +10,14 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { effectivePrice, getStoreTables } from '@/lib/priceTables';
 import { useStore } from '@/lib/StoreContext';
+import { useNavigate } from 'react-router-dom';
 
 const SALES_CHANNELS = ['Loja Física', 'WhatsApp', 'Instagram', 'Facebook', 'Site / E-commerce', 'Telefone', 'Indicação', 'Feira / Evento', 'Outros'];
 
 export default function CaixaRapido() {
   const { store } = useStore();
   const tables = getStoreTables(store);
+  const navigate = useNavigate();
 
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
@@ -49,6 +51,19 @@ export default function CaixaRapido() {
       .then(list => { setProducts(list || []); setLoadingProducts(false); })
       .catch(() => setLoadingProducts(false));
   }, []);
+
+  // ESC sai do Caixa Rápido (ignora se houver select/dialog aberto). ENTER salva referências — fluxo já existente.
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key !== 'Escape') return;
+      if (loading) return;
+      if (document.querySelector('[data-state="open"][role="listbox"], [data-state="open"][role="dialog"], [data-state="open"][role="menu"]')) return;
+      e.preventDefault();
+      navigate('/');
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [navigate, loading]);
 
   const subtotal = cart.reduce((s, i) => s + i.total, 0);
   const total = Math.max(0, subtotal - (discount || 0));
@@ -234,14 +249,24 @@ export default function CaixaRapido() {
   };
 
   return (
-    <div className="min-h-full bg-muted/30 py-6 px-4">
+    <div className="fixed inset-0 z-40 bg-muted overflow-y-auto py-6 px-4">
       <div className="max-w-5xl mx-auto space-y-5">
         {/* Cabeçalho */}
-        <div className="text-center">
-          <h1 className="font-serif text-3xl font-semibold text-foreground">Caixa Rápido</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {store?.name} · digite a quantidade, a referência e a tabela
-          </p>
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-center flex-1">
+            <h1 className="font-serif text-3xl font-semibold text-foreground">Caixa Rápido</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {store?.name} · digite a quantidade, a referência e a tabela
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/')}
+            className="shrink-0 inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-3 py-1.5 border border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary/40"
+            title="Sair (ESC)"
+          >
+            <span className="hidden sm:inline">ESC para sair</span>
+            <span className="sm:hidden">ESC</span>
+          </button>
         </div>
 
         {/* Entrada de produto — foco central */}
