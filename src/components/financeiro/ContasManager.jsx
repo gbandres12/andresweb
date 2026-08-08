@@ -2,18 +2,20 @@ import { useState, useMemo, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, Trash2, Check, Clock, X } from 'lucide-react';
+import { Plus, Trash2, Check, Clock, X, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import ContasImporter from '@/components/financeiro/ContasImporter';
 
 const PAYMENT_METHODS = ['Dinheiro', 'PIX', 'Cartão de Crédito', 'Cartão de Débito', 'Transferência', 'Outros'];
 
 export default function ContasManager({ transactions, onRefresh }) {
   const [showForm, setShowForm] = useState(false);
+  const [showImporter, setShowImporter] = useState(false);
   const [filter, setFilter] = useState('all'); // all | receivable | payable | pending
   const [formType, setFormType] = useState('despesa');
   const [customers, setCustomers] = useState([]);
@@ -90,6 +92,9 @@ export default function ContasManager({ transactions, onRefresh }) {
           ))}
         </div>
         <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => setShowImporter(true)}>
+            <Sparkles className="w-3.5 h-3.5 mr-1" /> Importar (IA)
+          </Button>
           <Button size="sm" variant="outline" onClick={() => { setFormType('receita'); setShowForm(true); }}>
             <Plus className="w-3.5 h-3.5 mr-1" /> A Receber
           </Button>
@@ -171,6 +176,18 @@ export default function ContasManager({ transactions, onRefresh }) {
             </DialogTitle>
           </DialogHeader>
           <TransactionForm type={formType} customers={customers} onClose={() => { setShowForm(false); onRefresh(); }} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showImporter} onOpenChange={v => { if (!v) setShowImporter(false); }}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-xl flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" /> Importar Contas com IA
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground">Envie um PDF, CSV ou Excel — a IA extrai e classifica cada lançamento como receita ou despesa.</p>
+          </DialogHeader>
+          <ContasImporter onClose={() => setShowImporter(false)} onImported={onRefresh} />
         </DialogContent>
       </Dialog>
     </div>
