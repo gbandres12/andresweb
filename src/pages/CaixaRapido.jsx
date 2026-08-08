@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { effectivePrice, getStoreTables } from '@/lib/priceTables';
+import { effectivePrice, getStoreTables, getStorePaymentMethods, getPaymentMethodLabel } from '@/lib/priceTables';
 import { useStore } from '@/lib/StoreContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -17,6 +17,7 @@ const SALES_CHANNELS = ['Loja Física', 'WhatsApp', 'Instagram', 'Facebook', 'Si
 export default function CaixaRapido() {
   const { store } = useStore();
   const tables = getStoreTables(store);
+  const paymentMethods = getStorePaymentMethods(store);
   const navigate = useNavigate();
 
   const [products, setProducts] = useState([]);
@@ -41,12 +42,16 @@ export default function CaixaRapido() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [lastSale, setLastSale] = useState({ num: '', total: 0, troco: 0, cashReceived: 0, paymentMethod: '' });
   const [inadimplencia, setInadimplencia] = useState(null);
+  const [sellers, setSellers] = useState([]);
 
   const qtyRef = useRef(null);
   const refRef = useRef(null);
 
   useEffect(() => {
     base44.auth.me().then(u => setSeller(u?.full_name || '')).catch(() => {});
+    base44.entities.Employee.filter({}, 'name', 500)
+      .then(list => setSellers((list || []).filter(e => e.active !== false)))
+      .catch(() => {});
     base44.entities.Product.filter({ is_active: true }, '-created_date', 5000)
       .then(list => { setProducts(list || []); setLoadingProducts(false); })
       .catch(() => setLoadingProducts(false));
@@ -65,6 +70,7 @@ export default function CaixaRapido() {
     return () => window.removeEventListener('keydown', handler);
   }, [navigate, loading]);
 
+  const sellerOptions = [...sellers.map(s => s.name), ...(seller && !sellers.some(s => s.name === seller) ? [seller] : [])];
   const subtotal = cart.reduce((s, i) => s + i.total, 0);
   const total = Math.max(0, subtotal - (discount || 0));
   const cashReceivedNum = Number(cashReceived) || 0;
@@ -141,11 +147,28 @@ export default function CaixaRapido() {
 
   const removeFromCart = (key) => setCart(cart.filter(i => i.key !== key));
 
+  const genFaturaNumber = async () => {
+    try {
+      const filter = store?.id ? { sale_type: 'consignacao', store_id: store.id } : { sale_type: 'consignacao' };
+      const list = await base44.entities.Sale.filter(filter, '-created_date', 200);
+      const year = new Date().getFullYear();
+      let max = 0;
+      (list || []).forEach(s => {
+        const m = String(s.sale_number || '').match(/FAT-(\d{4})-(\d+)/);
+        if (m && Number(m[1]) === year) max = Math.max(max, Number(m[2]));
+      });
+      return `FAT-${year}-${String(max + 1).padStart(4, '0')}`;
+    } catch {
+      return `FAT-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`;
+    }
+  };
+
   const finalizeSale = async () => {
     if (!cart.length) { toast.error('Carrinho vazio'); return; }
     if (!paymentMethod) { toast.error('Selecione o pagamento'); return; }
     if (!salesChannel) { toast.error('Selecione o canal de venda'); return; }
     if (!seller.trim()) { toast.error('Informe o vendedor'); return; }
+    if (paymentMethod === 'Consignação' && !customerName.trim()) { toast.error('Informe o nome do cliente (consignatário) para gerar a fatura'); return; }
 
     if (paymentMethod === 'Crédito da loja') {
       if (!customerName.trim()) { toast.error('Informe o cliente para usar crédito da loja'); return; }
@@ -188,18 +211,29 @@ export default function CaixaRapido() {
 
   const doFinalize = async (customerId = null) => {
     setLoading(true);
-    const saleNum = `VND-${Date.now().toString().slice(-6)}`;
+    const isConsignacao = paymentMethod === 'Consignação';
+    const saleNum = isConsignacao ? await genFaturaNumber() : `VND-${Date.now().toString().slice(-6)}`;
     await base44.entities.Sale.create({
+      store_id: store?.id,
       sale_number: saleNum,
       items: cart.map(({ key, ...i }) => i),
       subtotal, discount: discount || 0, total,
       price_table: table,
       payment_method: paymentMethod,
-      payment_details: paymentMethod === 'Dinheiro' && cashReceivedNum > 0
-        ? `Recebido: R$ ${cashReceivedNum.toFixed(2)} | Troco: R$ ${troco.toFixed(2)}` : '',
+      payment_details: isConsignacao
+        ? 'Fatura de consignação — recebimentos abatem o saldo'
+        : (paymentMethod === 'Dinheiro' && cashReceivedNum > 0
+          ? `Recebido: R$ ${cashReceivedNum.toFixed(2)} | Troco: R$ ${troco.toFixed(2)}` : ''),
       customer_id: customerId, customer_name: customerName, customer_phone: customerPhone,
       seller_name: seller, consultant_name: consultant, sales_channel: salesChannel,
-      status: 'concluida', sale_type: 'venda',
+      status: isConsignacao ? 'pendente' : 'concluida',
+      sale_type: isConsignacao ? 'consignacao' : 'venda',
+      ...(isConsignacao ? {
+        consignee_name: customerName,
+        consignment_status: 'em_consignacao',
+        consignment_paid: 0,
+        consignment_payments: [],
+      } : {}),
     });
 
     try {
@@ -242,7 +276,7 @@ export default function CaixaRapido() {
           ? { ...v, stock: Math.max(0, (v.stock || 0) - ci.quantity) } : v) };
     }));
 
-    setLastSale({ num: saleNum, total, troco, cashReceived: cashReceivedNum, paymentMethod });
+    setLastSale({ num: saleNum, total, troco, cashReceived: cashReceivedNum, paymentMethod, isConsignacao: paymentMethod === 'Consignação' });
     setCart([]); setDiscount(0); setPaymentMethod(''); setCashReceived('');
     setCustomerName(''); setCustomerPhone(''); setConsultant(''); setSalesChannel('');
     setShowSuccess(true); setLoading(false);
@@ -413,7 +447,12 @@ export default function CaixaRapido() {
             </div>
             <div>
               <label className="text-xs font-semibold text-muted-foreground mb-1.5 block">Vendedor *</label>
-              <Input value={seller} onChange={e => setSeller(e.target.value)} className="h-11" />
+              <Select value={seller} onValueChange={setSeller}>
+                <SelectTrigger className="h-11"><SelectValue placeholder="Selecione o vendedor" /></SelectTrigger>
+                <SelectContent>
+                  {sellerOptions.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <Input placeholder="Nome do cliente (opcional)" value={customerName} onChange={e => setCustomerName(e.target.value)} className="h-11" />
             <Input placeholder="Telefone (opcional)" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} className="h-11" />
@@ -424,7 +463,7 @@ export default function CaixaRapido() {
               <Select value={paymentMethod} onValueChange={setPaymentMethod}>
                 <SelectTrigger className="h-11"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                 <SelectContent>
-                  {['Dinheiro', 'PIX', 'Cartão', 'Crédito da loja'].map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                  {paymentMethods.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -470,8 +509,11 @@ export default function CaixaRapido() {
               <Check className="w-8 h-8 text-emerald-600" />
             </div>
             <div>
-              <h2 className="font-serif text-2xl font-semibold">Venda Realizada!</h2>
+              <h2 className="font-serif text-2xl font-semibold">{lastSale.isConsignacao ? 'Fatura Gerada!' : 'Venda Realizada!'}</h2>
               <p className="text-muted-foreground text-sm mt-1">#{lastSale.num}</p>
+              {lastSale.isConsignacao && (
+                <p className="text-xs text-primary mt-1">Consignação em aberto — registre os recebimentos em Consignações.</p>
+              )}
               <p className="text-xl font-serif font-semibold text-primary mt-2">R$ {lastSale.total.toFixed(2).replace('.', ',')}</p>
               {lastSale.paymentMethod === 'Dinheiro' && lastSale.cashReceived > 0 && (
                 <p className="text-sm text-muted-foreground mt-1">

@@ -53,3 +53,28 @@ export const effectivePrice = (product, tableKey, tablesConfig) => {
 };
 
 export const fmtPct = (v) => `${v > 0 ? '+' : ''}${Number(v)}%`;
+
+// Formas de pagamento do checkout — rótulos personalizáveis por loja.
+// O "value" é o nome interno (usado no sistema); o "label" é o que o cliente vê no caixa.
+export const DEFAULT_PAYMENT_METHOD_CONFIG = [
+  { value: 'Dinheiro', label: 'Dinheiro' },
+  { value: 'PIX', label: 'PIX' },
+  { value: 'Cartão', label: 'Cartão' },
+  { value: 'Crédito da loja', label: 'Crédito da loja' },
+  { value: 'Consignação', label: 'Consignação' },
+];
+
+export const getStorePaymentMethods = (store) => {
+  const cfg = store?.settings?.payment_methods;
+  if (Array.isArray(cfg) && cfg.length) {
+    const byVal = {};
+    cfg.forEach(c => { if (c?.value) byVal[c.value] = (c.label || c.value).trim() || c.value; });
+    return DEFAULT_PAYMENT_METHOD_CONFIG.map(d => ({ value: d.value, label: byVal[d.value] || d.label }));
+  }
+  return DEFAULT_PAYMENT_METHOD_CONFIG.map(d => ({ ...d }));
+};
+
+export const getPaymentMethodLabel = (store, value) => {
+  const m = getStorePaymentMethods(store).find(x => x.value === value);
+  return m?.label || value || '';
+};
