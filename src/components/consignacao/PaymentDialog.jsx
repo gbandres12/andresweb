@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { adjustReceivableOnPayment } from '@/lib/consignment';
 
 const TX_METHOD = { 'Dinheiro': 'Dinheiro', 'PIX': 'PIX', 'Cartão': 'Cartão de Crédito', 'Transferência': 'Transferência' };
 
@@ -60,6 +61,7 @@ export default function PaymentDialog({ consignment, onOpenChange, onDone }) {
           status: 'pago', paid_date: date,
           month: date.slice(0, 7),
         });
+        await adjustReceivableOnPayment(consignment.sale_number, v);
       } catch { /* ignore */ }
       toast.success(fullyPaid ? 'Consignação liquidada' : 'Pagamento registrado');
       onDone?.();

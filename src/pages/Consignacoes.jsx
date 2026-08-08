@@ -9,6 +9,7 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import NewConsignationDialog from '@/components/consignacao/NewConsignationDialog';
 import PaymentDialog from '@/components/consignacao/PaymentDialog';
+import { cancelConsignmentReceivable } from '@/lib/consignment';
 
 const STATUS_LABEL = {
   em_consignacao: 'Em consignação',
@@ -81,6 +82,7 @@ export default function Consignacoes() {
         });
       }
       await base44.entities.Sale.update(c.id, { consignment_status: 'devolvida', status: 'cancelada' });
+      try { await cancelConsignmentReceivable(c.sale_number); } catch { /* ignore */ }
       toast.success('Itens devolvidos ao estoque');
       load();
     } catch {

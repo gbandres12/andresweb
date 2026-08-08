@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { effectivePrice, getStoreTables, getStorePaymentMethods, getPaymentMethodLabel } from '@/lib/priceTables';
+import { createConsignmentReceivable } from '@/lib/consignment';
 import { useStore } from '@/lib/StoreContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -236,6 +237,10 @@ export default function CaixaRapido() {
       } : {}),
     });
 
+    if (isConsignacao) {
+      try { await createConsignmentReceivable({ storeId: store?.id, saleNumber: saleNum, total, consigneeName: customerName }); } catch { /* ignore */ }
+    }
+
     try {
       const cfg = store?.settings?.commission || {};
       const rate = Number(cfg.sellers?.[seller] ?? cfg.default_rate ?? 0);
@@ -256,6 +261,13 @@ export default function CaixaRapido() {
           ? { ...v, stock: Math.max(0, (v.stock || 0) - item.quantity) } : v
       );
       await base44.entities.Product.update(product.id, { variants: updatedVariants });
+      try {
+        await base44.entities.StockMovement.create({
+          product_id: product.id, product_name: item.product_name,
+          variant_size: item.variant_size, variant_color: item.variant_color,
+          type: 'saida', quantity: item.quantity, reason: isConsignacao ? 'Consignação' : 'Venda', store_id: store?.id,
+        });
+      } catch { /* ignore */ }
     }
 
     if (paymentMethod === 'Crédito da loja' && customerId) {

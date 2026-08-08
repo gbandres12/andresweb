@@ -9,6 +9,7 @@ import { Trash2, Plus, Search, Loader2, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { getStoreTables, effectivePrice } from '@/lib/priceTables';
+import { createConsignmentReceivable, adjustReceivableOnPayment } from '@/lib/consignment';
 
 const variantKey = (v) => `${v.size || ''}|${v.color || ''}`;
 
@@ -118,6 +119,7 @@ export default function NewConsignationDialog({ open, onOpenChange, onCreated })
         customer_name: consigneeName.trim(),
         consignment_due_date: dueDate,
       });
+      try { await createConsignmentReceivable({ storeId: store?.id, saleNumber, total, consigneeName: consigneeName.trim(), customerId: selectedCustomerId || undefined, dueDate }); } catch { /* ignore */ }
       if (paid > 0) {
         try {
           await base44.entities.Transaction.create({
@@ -130,6 +132,7 @@ export default function NewConsignationDialog({ open, onOpenChange, onCreated })
             status: 'pago', paid_date: format(new Date(), 'yyyy-MM-dd'),
             month: format(new Date(), 'yyyy-MM'),
           });
+          await adjustReceivableOnPayment(saleNumber, paid);
         } catch { /* ignore */ }
       }
       toast.success(fullyPaid ? 'Consignação registrada e liquidada' : 'Consignação registrada');

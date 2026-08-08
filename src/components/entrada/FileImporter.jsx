@@ -164,10 +164,20 @@ export default function FileImporter() {
   };
 
   // Gera referência da loja = código da categoria + preço em centavos (ex.: 0490)
+  // Códigos iniciados em zero (ex.: calcinha = "0") são preservados como string.
   const buildReference = (category, price) => {
-    const cat = (categories || []).find(c => normHeader(c.name) === normHeader(category || ''));
-    const code = cat?.code;
-    if (!code) return '';
+    const ncat = normHeader(category || '');
+    let cat = (categories || []).find(c => normHeader(c.name) === ncat);
+    if (!cat) {
+      // correspondência parcial: "Calcinha" (CSV) ↔ "Calcinhas" (cadastro)
+      cat = (categories || []).find(c => {
+        const cn = normHeader(c.name);
+        return cn && ncat && (ncat.includes(cn) || cn.includes(ncat));
+      });
+    }
+    const rawCode = cat?.code;
+    if (rawCode == null || rawCode === '') return '';
+    const code = String(rawCode); // preserva zeros à esquerda ("0", "04", "0490")
     const cents = Math.max(0, Math.round((Number(price) || 0) * 100));
     return `${code}${cents.toString().padStart(3, '0')}`;
   };
