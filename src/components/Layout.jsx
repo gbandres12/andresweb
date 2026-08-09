@@ -63,6 +63,12 @@ const navGroups = [
       { path: '/configuracoes', label: 'Configurações', icon: Settings },
     ],
   },
+  {
+    label: 'Controle SaaS',
+    items: [
+      { path: '/admin', label: 'Painel Master SaaS', icon: ShieldAlert }
+    ],
+  },
 ];
 
 function NavItem({ item, location, onNavigate }) {

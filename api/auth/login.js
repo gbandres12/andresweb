@@ -70,7 +70,13 @@ export default async function handler(req, res) {
     }
 
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role || 'vendedor', store_id: user.store_id || null },
+      { 
+        id: user.id, 
+        email: user.email, 
+        role: user.role || 'vendedor', 
+        store_id: user.store_id || null,
+        organization_id: user.organization_id || null
+      },
       JWT_SECRET,
       { expiresIn: '30d' }
     );

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
+import { homeForRole } from '@/lib/permissions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Store, Lock, Mail, User, ShoppingBag, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
@@ -32,10 +33,10 @@ export default function Login() {
 
     try {
       setLoading(true);
-      await base44.auth.login(loginEmail, loginPassword);
+      const res = await base44.auth.login(loginEmail, loginPassword);
       toast.success('Login realizado com sucesso!');
       await checkUserAuth();
-      window.location.href = '/';
+      window.location.href = homeForRole(res.user);
     } catch (err) {
       toast.error(err.message || 'Erro ao realizar login');
     } finally {
@@ -52,7 +53,7 @@ export default function Login() {
 
     try {
       setLoading(true);
-      await base44.auth.register({
+      const res = await base44.auth.register({
         email: regEmail,
         password: regPassword,
         full_name: regFullName,
@@ -60,7 +61,7 @@ export default function Login() {
       });
       toast.success('Conta e Loja criadas com sucesso!');
       await checkUserAuth();
-      window.location.href = '/';
+      window.location.href = homeForRole(res.user);
     } catch (err) {
       toast.error(err.message || 'Erro ao criar conta');
     } finally {

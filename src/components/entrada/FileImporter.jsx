@@ -181,7 +181,7 @@ export default function FileImporter() {
     if (rawCode == null || rawCode === '') return '';
     const code = String(rawCode); // preserva zeros à esquerda ("0", "04", "0490")
     const cents = Math.max(0, Math.round((Number(price) || 0) * 100));
-    return `${code}${cents.toString().padStart(3, '0')}`;
+    return `${code}${cents.toString().padStart(4, '0')}`;
   };
 
   const extract = async () => {

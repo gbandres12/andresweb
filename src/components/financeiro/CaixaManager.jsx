@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useStore } from '@/lib/StoreContext';
-import { Wallet, Lock, Plus, Minus, LogOut, Settings, History } from 'lucide-react';
+import { useAuth } from '@/lib/AuthContext';
+import { isManager } from '@/lib/permissions';
+import { Wallet, Lock, Plus, Minus, LogOut, Settings, History, Upload, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
@@ -11,6 +13,7 @@ import PasswordModal from '@/components/financeiro/caixa/PasswordModal';
 import { OpenRegisterForm, MovementForm, CloseConfirmForm, ChangePasswordForm } from '@/components/financeiro/caixa/CaixaForms';
 import CaixaLedger from '@/components/financeiro/caixa/CaixaLedger';
 import CaixaLog from '@/components/financeiro/caixa/CaixaLog';
+import ContasImporter from '@/components/financeiro/ContasImporter';
 
 const fmt = v => `R$ ${(Number(v) || 0).toFixed(2).replace('.', ',')}`;
 const normMethod = m => (m === 'Dinheiro' || m === 'PIX') ? m : (m && m.startsWith('Cartão') ? 'Cartão' : null);
@@ -25,13 +28,17 @@ const TITLES = {
 
 export default function CaixaManager({ sales }) {
   const { store, reload: reloadStore } = useStore();
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
   const [register, setRegister] = useState(null);
   const [movements, setMovements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pendingAction, setPendingAction] = useState(null);
   const [activeForm, setActiveForm] = useState(null);
   const [view, setView] = useState('current');
+  const [showImporter, setShowImporter] = useState(false);
+
+  // Permissões baseadas no role
+  const isGerente = isManager(user);
 
   const managerPwd = store?.settings?.manager_password || '1234';
 
@@ -56,7 +63,6 @@ export default function CaixaManager({ sales }) {
   }, []);
 
   useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => {});
     load();
   }, [load]);
 
@@ -159,16 +165,28 @@ export default function CaixaManager({ sales }) {
 
   return (
     <div className="space-y-5">
-      <div className="inline-flex rounded-lg border border-slate-200 dark:border-border bg-white dark:bg-card shadow-sm p-1">
-        <button onClick={() => setView('current')} className={cn('px-4 py-1.5 text-sm font-medium rounded-md transition-colors', view === 'current' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}>
-          Caixa Atual
-        </button>
-        <button onClick={() => setView('log')} className={cn('inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-md transition-colors', view === 'log' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}>
-          <History className="w-3.5 h-3.5" /> Log de Caixa
-        </button>
+      {/* Seletor de view — somente gerentes têm Log de Caixa */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="inline-flex rounded-lg border border-slate-200 dark:border-border bg-white dark:bg-card shadow-sm p-1">
+          <button onClick={() => setView('current')} className={cn('px-4 py-1.5 text-sm font-medium rounded-md transition-colors', view === 'current' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}>
+            Caixa Atual
+          </button>
+          {isGerente && (
+            <button onClick={() => setView('log')} className={cn('inline-flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-md transition-colors', view === 'log' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}>
+              <History className="w-3.5 h-3.5" /> Log de Caixa
+            </button>
+          )}
+        </div>
+
+        {/* Badge informativo para vendedor */}
+        {!isGerente && (
+          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-3 py-1.5 rounded-full border border-border">
+            <Eye className="w-3.5 h-3.5" /> Apenas visualização — operações requerem o gerente
+          </span>
+        )}
       </div>
 
-      {view === 'log' ? (
+      {view === 'log' && isGerente ? (
         <CaixaLog />
       ) : !register ? (
         <div className="bg-white dark:bg-card shadow-sm rounded-2xl border border-slate-200 dark:border-border p-8 text-center">
@@ -176,14 +194,21 @@ export default function CaixaManager({ sales }) {
             <Wallet className="w-7 h-7 text-muted-foreground" />
           </div>
           <h3 className="font-serif text-xl font-semibold">Caixa Fechado</h3>
-          <p className="text-sm text-muted-foreground mt-1 mb-5">Abra o caixa informando o fundo de troco para iniciar o dia.</p>
-          <div className="flex gap-2 justify-center flex-wrap">
-            <Button onClick={() => setPendingAction('open')}><Lock className="w-4 h-4 mr-1.5" /> Abrir Caixa</Button>
-            <Button variant="outline" onClick={() => setPendingAction('changePwd')}><Settings className="w-4 h-4 mr-1.5" /> Alterar senha do gerente</Button>
-          </div>
+          {isGerente ? (
+            <>
+              <p className="text-sm text-muted-foreground mt-1 mb-5">Abra o caixa informando o fundo de troco para iniciar o dia.</p>
+              <div className="flex gap-2 justify-center flex-wrap">
+                <Button onClick={() => setPendingAction('open')}><Lock className="w-4 h-4 mr-1.5" /> Abrir Caixa</Button>
+                <Button variant="outline" onClick={() => setPendingAction('changePwd')}><Settings className="w-4 h-4 mr-1.5" /> Alterar senha do gerente</Button>
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground mt-1">O gerente ainda não abriu o caixa hoje. Aguarde para iniciar as operações.</p>
+          )}
         </div>
       ) : (
         <>
+          {/* Status do caixa */}
           <div className="bg-white dark:bg-card shadow-sm rounded-2xl border border-slate-200 dark:border-border p-5 flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center">
@@ -199,6 +224,7 @@ export default function CaixaManager({ sales }) {
             <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400 font-medium">Aberto</span>
           </div>
 
+          {/* Totais por método */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {methodCards.map(c => (
               <div key={c.label} className={cn('rounded-2xl border p-4', c.cls)}>
@@ -212,35 +238,60 @@ export default function CaixaManager({ sales }) {
             </div>
           </div>
 
-          <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" onClick={() => setPendingAction('sangria')}><Minus className="w-4 h-4 mr-1.5" /> Sangria (saída)</Button>
-            <Button variant="outline" onClick={() => setPendingAction('suprimento')}><Plus className="w-4 h-4 mr-1.5" /> Suprimento (entrada)</Button>
-            <Button onClick={() => setPendingAction('close')}><LogOut className="w-4 h-4 mr-1.5" /> Fechar Caixa</Button>
-            <Button variant="ghost" onClick={() => setPendingAction('changePwd')}><Settings className="w-4 h-4 mr-1.5" /> Alterar senha</Button>
-          </div>
+          {/* Botões de ação — somente para gerentes */}
+          {isGerente && (
+            <div className="flex gap-2 flex-wrap">
+              <Button variant="outline" onClick={() => setPendingAction('sangria')}><Minus className="w-4 h-4 mr-1.5" /> Sangria (saída)</Button>
+              <Button variant="outline" onClick={() => setPendingAction('suprimento')}><Plus className="w-4 h-4 mr-1.5" /> Suprimento (entrada)</Button>
+              <Button onClick={() => setPendingAction('close')}><LogOut className="w-4 h-4 mr-1.5" /> Fechar Caixa</Button>
+              <Button variant="ghost" onClick={() => setPendingAction('changePwd')}><Settings className="w-4 h-4 mr-1.5" /> Alterar senha</Button>
+              <Button variant="outline" onClick={() => setShowImporter(true)}><Upload className="w-4 h-4 mr-1.5" /> Importar Lançamentos</Button>
+            </div>
+          )}
 
           <CaixaLedger register={register} movements={movements} sales={sales} />
         </>
       )}
 
-      <PasswordModal
-        open={!!pendingAction}
-        title={TITLES[pendingAction]}
-        correctPassword={managerPwd}
-        onSuccess={onAuthSuccess}
-        onClose={() => setPendingAction(null)}
-      />
+      {/* PasswordModal — somente para ações de gerente */}
+      {isGerente && (
+        <PasswordModal
+          open={!!pendingAction}
+          title={TITLES[pendingAction]}
+          correctPassword={managerPwd}
+          onSuccess={onAuthSuccess}
+          onClose={() => setPendingAction(null)}
+        />
+      )}
 
-      <Dialog open={!!activeForm} onOpenChange={v => { if (!v) setActiveForm(null); }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>{TITLES[activeForm]}</DialogTitle></DialogHeader>
-          {activeForm === 'open' && <OpenRegisterForm onOpen={openRegister} onClose={() => setActiveForm(null)} />}
-          {activeForm === 'sangria' && <MovementForm kind="sangria" onSubmit={d => addMovement({ type: 'sangria', ...d })} onClose={() => setActiveForm(null)} />}
-          {activeForm === 'suprimento' && <MovementForm kind="suprimento" onSubmit={d => addMovement({ type: 'suprimento', ...d })} onClose={() => setActiveForm(null)} />}
-          {activeForm === 'close' && <CloseConfirmForm totals={totals} onConfirm={closeRegister} onClose={() => setActiveForm(null)} />}
-          {activeForm === 'changePwd' && <ChangePasswordForm currentPassword={managerPwd} onChange={changePassword} onClose={() => setActiveForm(null)} />}
-        </DialogContent>
-      </Dialog>
+      {/* Formulários de gerente */}
+      {isGerente && (
+        <Dialog open={!!activeForm} onOpenChange={v => { if (!v) setActiveForm(null); }}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader><DialogTitle>{TITLES[activeForm]}</DialogTitle></DialogHeader>
+            {activeForm === 'open' && <OpenRegisterForm onOpen={openRegister} onClose={() => setActiveForm(null)} />}
+            {activeForm === 'sangria' && <MovementForm kind="sangria" onSubmit={d => addMovement({ type: 'sangria', ...d })} onClose={() => setActiveForm(null)} />}
+            {activeForm === 'suprimento' && <MovementForm kind="suprimento" onSubmit={d => addMovement({ type: 'suprimento', ...d })} onClose={() => setActiveForm(null)} />}
+            {activeForm === 'close' && <CloseConfirmForm totals={totals} onConfirm={closeRegister} onClose={() => setActiveForm(null)} />}
+            {activeForm === 'changePwd' && <ChangePasswordForm currentPassword={managerPwd} onChange={changePassword} onClose={() => setActiveForm(null)} />}
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Modal de importação de lançamentos — somente gerentes */}
+      {isGerente && (
+        <Dialog open={showImporter} onOpenChange={setShowImporter}>
+          <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="font-serif text-xl">Importar Lançamentos do Caixa</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground -mt-2 mb-2">
+              Importe extratos ou lançamentos de sistemas externos (Stone, Cielo, extrato bancário, etc.) para registrá-los nas movimentações do caixa atual.
+            </p>
+            <ContasImporter onClose={() => { setShowImporter(false); load(); }} onImported={load} />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

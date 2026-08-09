@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { db } from '../db/database.js';
+import { supabase } from '../../api/_lib/supabase.js';
 import { authMiddleware, JWT_SECRET } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -26,8 +27,28 @@ router.post('/auth/login', async (req, res) => {
     }
 
     const cleanEmail = email.toLowerCase().trim();
-    const users = db.filter('User', { email: cleanEmail });
-    const user = users[0];
+    
+    // 1. Busca primeiro no Supabase
+    let user = null;
+    try {
+      const { data: sbUser } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', cleanEmail)
+        .maybeSingle();
+
+      if (sbUser) {
+        user = sbUser;
+      }
+    } catch (e) {
+      console.warn('Erro ao consultar Supabase no login local:', e.message);
+    }
+
+    if (!user) {
+      // Fallback para DB local
+      const users = db.filter('User', { email: cleanEmail });
+      user = users[0];
+    }
 
     if (!user) {
       return res.status(401).json({ error: 'Usuário não encontrado com esse e-mail' });
@@ -52,7 +73,13 @@ router.post('/auth/login', async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role || 'vendedor', store_id: user.store_id || null },
+      { 
+        id: user.id, 
+        email: user.email, 
+        role: user.role || 'vendedor', 
+        store_id: user.store_id || null,
+        organization_id: user.organization_id || null
+      },
       JWT_SECRET,
       { expiresIn: '30d' }
     );

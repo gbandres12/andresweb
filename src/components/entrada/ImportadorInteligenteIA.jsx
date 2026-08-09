@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import { useStore } from '@/lib/StoreContext';
 import * as XLSX from 'xlsx';
+import Papa from 'papaparse';
 
 export default function ImportadorInteligenteIA() {
   const { store } = useStore();
@@ -26,14 +27,82 @@ export default function ImportadorInteligenteIA() {
     base44.entities.Category.list().then(setCategories).catch(() => {});
   }, []);
 
-  // Leitura do arquivo local via FileReader + SheetJS
+  // Leitura do arquivo local via FileReader + SheetJS / Base64 para PDF
   const processFile = async (selectedFile) => {
     if (!selectedFile) return;
     setFile(selectedFile);
     setLoading(true);
     setParsedItems([]);
 
+    const isPdf = selectedFile.name.toLowerCase().endsWith('.pdf') || selectedFile.type === 'application/pdf';
+
     try {
+      if (isPdf) {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            const base64 = (e.target.result || '').split(',')[1] || '';
+            const res = await fetch('/api/import-ai', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                mode: activeTab,
+                file_base64: base64,
+                file_name: selectedFile.name
+              })
+            }).then(r => r.json());
+
+            if (res.items && res.items.length > 0) {
+              setParsedItems(res.items);
+              toast.success(`${res.items.length} registros extraídos e classificados pela IA com sucesso! ✨`);
+            } else {
+              toast.error('Nenhum dado válido identificado no arquivo PDF.');
+            }
+          } catch (err) {
+            toast.error('Erro ao processar PDF: ' + err.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+        reader.readAsDataURL(selectedFile);
+        return;
+      }
+
+      const isCsv = selectedFile.name.toLowerCase().endsWith('.csv') || selectedFile.type === 'text/csv';
+
+      if (isCsv) {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            const text = (e.target.result || '').replace(/^\uFEFF/, '');
+            const parsed = Papa.parse(text, { header: true, skipEmptyLines: 'greedy', transformHeader: h => h.trim() });
+            const jsonRows = parsed.data || [];
+
+            const res = await fetch('/api/import-ai', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                mode: activeTab,
+                raw_text: JSON.stringify(jsonRows)
+              })
+            }).then(r => r.json());
+
+            if (res.items && res.items.length > 0) {
+              setParsedItems(res.items);
+              toast.success(`${res.items.length} registros extraídos e classificados pela IA com sucesso! ✨`);
+            } else {
+              toast.error('Nenhum dado válido identificado no arquivo CSV.');
+            }
+          } catch (err) {
+            toast.error('Erro ao processar CSV: ' + err.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+        reader.readAsText(selectedFile);
+        return;
+      }
+
       const reader = new FileReader();
       reader.onload = async (e) => {
         try {
@@ -107,7 +176,7 @@ export default function ImportadorInteligenteIA() {
           category: item.category || 'Outros',
           price: Number(item.price) || 0,
           cost_price: Number(item.cost_price) || 0,
-          reference: item.reference || `REF-${Math.floor(Math.random() * 9000 + 1000)}`,
+          reference: item.reference || item.ref_fernanda || `REF-${Math.floor(Math.random() * 9000 + 1000)}`,
           store_id: store?.id,
           variants: [{ size: item.size || 'M', color: item.color || 'Único', stock: Number(item.stock) || 0, sku: item.sku }],
           is_active: true
@@ -284,6 +353,7 @@ export default function ImportadorInteligenteIA() {
                 <thead className="bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider sticky top-0 border-b border-slate-200">
                   <tr>
                     <th className="px-4 py-3">Produto</th>
+                    <th className="px-3 py-3">Referência</th>
                     <th className="px-3 py-3">Categoria</th>
                     <th className="px-3 py-3 text-right">Preço Venda</th>
                     <th className="px-3 py-3 text-right">Preço Custo</th>
@@ -301,6 +371,21 @@ export default function ImportadorInteligenteIA() {
                           onChange={(e) => updateParsedItem(idx, 'name', e.target.value)}
                           className="h-8 text-xs bg-transparent border-slate-200 font-medium text-slate-800"
                         />
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="space-y-1">
+                          <Input 
+                            value={item.reference || ''} 
+                            onChange={(e) => updateParsedItem(idx, 'reference', e.target.value)}
+                            placeholder="Ref. Produto"
+                            className="h-8 text-xs bg-transparent border-slate-200 font-mono font-medium text-emerald-700"
+                          />
+                          {item.ref_fernanda && (
+                            <span className="text-[10px] text-slate-500 font-mono block whitespace-nowrap">
+                              Ref. Fernanda: <strong className="text-emerald-700">{item.ref_fernanda}</strong>
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-3 py-3">
                         <Input 

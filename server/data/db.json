@@ -9,9 +9,209 @@
   "Employee": [],
   "Exchange": [],
   "Expense": [],
-  "Product": [],
+  "Product": [
+    {
+      "id": "341e37a0-a99c-4d42-a5b7-241ca6a24b8c",
+      "name": "Produto Teste Automático B",
+      "category": "Blusas",
+      "price": 89.9,
+      "cost_price": 35,
+      "reference": "REF-TEST-002",
+      "store_id": "store-demo-1",
+      "variants": [
+        {
+          "size": "P",
+          "color": "Branco",
+          "stock": 20,
+          "sku": "TEST-PROD-B"
+        }
+      ],
+      "is_active": true,
+      "created_date": "2026-08-09T21:40:23.982Z",
+      "updated_date": "2026-08-09T21:40:23.982Z"
+    },
+    {
+      "id": "5a1651f7-798f-4475-8c65-95173cc4ed40",
+      "name": "Produto Teste Automático A",
+      "category": "Vestidos",
+      "price": 199.9,
+      "cost_price": 89.9,
+      "reference": "REF-TEST-001",
+      "store_id": "store-demo-1",
+      "variants": [
+        {
+          "size": "M",
+          "color": "Rosa",
+          "stock": 15,
+          "sku": "TEST-PROD-A"
+        }
+      ],
+      "is_active": true,
+      "created_date": "2026-08-09T21:40:23.982Z",
+      "updated_date": "2026-08-09T21:40:23.982Z"
+    },
+    {
+      "id": "91df9791-1627-4966-9b1d-2d238bc0eeeb",
+      "name": "Produto Teste Automático B",
+      "category": "Blusas",
+      "price": 89.9,
+      "cost_price": 35,
+      "reference": "REF-TEST-002",
+      "store_id": "store-demo-1",
+      "variants": [
+        {
+          "size": "P",
+          "color": "Branco",
+          "stock": 20,
+          "sku": "TEST-PROD-B"
+        }
+      ],
+      "is_active": true,
+      "created_date": "2026-08-09T21:28:47.627Z",
+      "updated_date": "2026-08-09T21:28:47.627Z"
+    },
+    {
+      "id": "3c7a12d3-bbe0-4b55-a66b-e1b890e1e4f7",
+      "name": "Produto Teste Automático A",
+      "category": "Vestidos",
+      "price": 199.9,
+      "cost_price": 89.9,
+      "reference": "REF-TEST-001",
+      "store_id": "store-demo-1",
+      "variants": [
+        {
+          "size": "M",
+          "color": "Rosa",
+          "stock": 15,
+          "sku": "TEST-PROD-A"
+        }
+      ],
+      "is_active": true,
+      "created_date": "2026-08-09T21:28:47.626Z",
+      "updated_date": "2026-08-09T21:28:47.626Z"
+    },
+    {
+      "id": "0165f7ff-565e-496c-8dbc-723f3f8ad1a0",
+      "name": "Produto Teste Automático B",
+      "category": "Blusas",
+      "price": 89.9,
+      "cost_price": 35,
+      "reference": "REF-TEST-002",
+      "store_id": "store-demo-1",
+      "variants": [
+        {
+          "size": "P",
+          "color": "Branco",
+          "stock": 20,
+          "sku": "TEST-PROD-B"
+        }
+      ],
+      "is_active": true,
+      "created_date": "2026-08-09T18:07:55.304Z",
+      "updated_date": "2026-08-09T18:07:55.304Z"
+    },
+    {
+      "id": "a6c3cca2-e904-4ea3-9201-fa818ddd8c29",
+      "name": "Produto Teste Automático A",
+      "category": "Vestidos",
+      "price": 199.9,
+      "cost_price": 89.9,
+      "reference": "REF-TEST-001",
+      "store_id": "store-demo-1",
+      "variants": [
+        {
+          "size": "M",
+          "color": "Rosa",
+          "stock": 15,
+          "sku": "TEST-PROD-A"
+        }
+      ],
+      "is_active": true,
+      "created_date": "2026-08-09T18:07:55.303Z",
+      "updated_date": "2026-08-09T18:07:55.303Z"
+    }
+  ],
   "Sale": [],
-  "StockMovement": [],
+  "StockMovement": [
+    {
+      "id": "f990613e-dcdc-4712-b498-a668cc6a1423",
+      "product_id": "341e37a0-a99c-4d42-a5b7-241ca6a24b8c",
+      "product_name": "Produto Teste Automático B",
+      "variant_size": "M",
+      "variant_color": "Rosa",
+      "store_id": "store-demo-1",
+      "type": "entrada",
+      "quantity": 15,
+      "reason": "Teste Automático de Importação",
+      "created_date": "2026-08-09T21:40:23.983Z",
+      "updated_date": "2026-08-09T21:40:23.983Z"
+    },
+    {
+      "id": "cccd1370-0ed1-42d0-8fc7-c043c5b9a63f",
+      "product_id": "5a1651f7-798f-4475-8c65-95173cc4ed40",
+      "product_name": "Produto Teste Automático A",
+      "variant_size": "M",
+      "variant_color": "Rosa",
+      "store_id": "store-demo-1",
+      "type": "entrada",
+      "quantity": 15,
+      "reason": "Teste Automático de Importação",
+      "created_date": "2026-08-09T21:40:23.983Z",
+      "updated_date": "2026-08-09T21:40:23.983Z"
+    },
+    {
+      "id": "32658524-c7c7-4fcc-a8af-4ff21be93a1b",
+      "product_id": "91df9791-1627-4966-9b1d-2d238bc0eeeb",
+      "product_name": "Produto Teste Automático B",
+      "variant_size": "M",
+      "variant_color": "Rosa",
+      "store_id": "store-demo-1",
+      "type": "entrada",
+      "quantity": 15,
+      "reason": "Teste Automático de Importação",
+      "created_date": "2026-08-09T21:28:47.628Z",
+      "updated_date": "2026-08-09T21:28:47.628Z"
+    },
+    {
+      "id": "12449a3b-6820-497b-8645-a00e1922858f",
+      "product_id": "3c7a12d3-bbe0-4b55-a66b-e1b890e1e4f7",
+      "product_name": "Produto Teste Automático A",
+      "variant_size": "M",
+      "variant_color": "Rosa",
+      "store_id": "store-demo-1",
+      "type": "entrada",
+      "quantity": 15,
+      "reason": "Teste Automático de Importação",
+      "created_date": "2026-08-09T21:28:47.628Z",
+      "updated_date": "2026-08-09T21:28:47.628Z"
+    },
+    {
+      "id": "e2e60554-3b24-40f0-8271-6102c325cd3e",
+      "product_id": "0165f7ff-565e-496c-8dbc-723f3f8ad1a0",
+      "product_name": "Produto Teste Automático B",
+      "variant_size": "M",
+      "variant_color": "Rosa",
+      "store_id": "store-demo-1",
+      "type": "entrada",
+      "quantity": 15,
+      "reason": "Teste Automático de Importação",
+      "created_date": "2026-08-09T18:07:55.305Z",
+      "updated_date": "2026-08-09T18:07:55.305Z"
+    },
+    {
+      "id": "591f569e-df1e-4d02-9617-a9203729340e",
+      "product_id": "a6c3cca2-e904-4ea3-9201-fa818ddd8c29",
+      "product_name": "Produto Teste Automático A",
+      "variant_size": "M",
+      "variant_color": "Rosa",
+      "store_id": "store-demo-1",
+      "type": "entrada",
+      "quantity": 15,
+      "reason": "Teste Automático de Importação",
+      "created_date": "2026-08-09T18:07:55.305Z",
+      "updated_date": "2026-08-09T18:07:55.305Z"
+    }
+  ],
   "Store": [
     {
       "id": "83f45b54-7a6e-41bf-8513-abf5ad398e14",

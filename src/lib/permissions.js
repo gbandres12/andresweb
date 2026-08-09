@@ -38,6 +38,9 @@ export function getRole(user) {
 
 export function canAccess(path, user) {
   const r = getRole(user);
+  if (path === '/admin') {
+    return r === 'superadmin';
+  }
   if (r === 'superadmin' || r === 'org_admin') return true;
   const list = ACCESS_BY_ROLE[r] || ACCESS_BY_ROLE.vendedor;
   return list.includes(path);
@@ -46,7 +49,7 @@ export function canAccess(path, user) {
 export function homeForRole(user) {
   const r = getRole(user);
   if (r === 'vendedor') return '/pdv';
-  if (r === 'superadmin') return '/';
+  if (r === 'superadmin') return '/admin';
   return '/';
 }
 

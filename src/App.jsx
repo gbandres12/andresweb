@@ -30,6 +30,7 @@ import Transferencias from '@/pages/Transferencias';
 import Trocas from '@/pages/Trocas';
 import Consignacoes from '@/pages/Consignacoes';
 import Login from '@/pages/Login';
+import SuperAdmin from '@/pages/SuperAdmin';
 
 const ProtectedRoute = ({ children }) => {
   const { isLoadingAuth, isAuthenticated, authError } = useAuth();
@@ -123,6 +124,7 @@ const AppRoutes = () => {
         <Route path="/transferencias" element={<Transferencias />} />
         <Route path="/trocas" element={<Trocas />} />
         <Route path="/consignacoes" element={<Consignacoes />} />
+        <Route path="/admin" element={<SuperAdmin />} />
       </Route>
 
       <Route path="*" element={<PageNotFound />} />
