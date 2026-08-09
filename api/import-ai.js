@@ -126,7 +126,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { mode = 'products', file_base64, raw_text } = req.body || {};
+    const { mode = 'products', file_base64, raw_text, api_key, provider = 'auto', model } = req.body || {};
     let rows = [];
 
     if (file_base64) {
@@ -150,6 +150,10 @@ export default async function handler(req, res) {
       }
     }
 
+    // Se chave informada via request ou ambiente
+    const keyToUse = api_key || process.env.OPENROUTER_API_KEY || process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY;
+    const providerToUse = provider !== 'auto' ? provider : (process.env.OPENROUTER_API_KEY ? 'openrouter' : (process.env.GEMINI_API_KEY ? 'gemini' : 'fallback'));
+
     if (rows.length === 0) {
       if (mode === 'products') {
         rows = [
@@ -172,10 +176,10 @@ export default async function handler(req, res) {
 
     if (mode === 'products') {
       const items = normalizeProducts(rows);
-      return res.status(200).json({ status: 'success', mode: 'products', total_extracted: items.length, items });
+      return res.status(200).json({ status: 'success', provider: providerToUse, mode: 'products', total_extracted: items.length, items });
     } else {
       const items = normalizeCashMovements(rows);
-      return res.status(200).json({ status: 'success', mode: 'cash', total_extracted: items.length, items });
+      return res.status(200).json({ status: 'success', provider: providerToUse, mode: 'cash', total_extracted: items.length, items });
     }
   } catch (err) {
     console.error('Erro no importador IA:', err);
