@@ -136,13 +136,10 @@ export const base44 = {
       });
     },
 
-    logout(redirectUrl) {
+    logout() {
       setAuthToken(null);
-      if (redirectUrl) {
-        window.location.href = '/login';
-      } else {
-        window.location.reload();
-      }
+      localStorage.removeItem('andresweb_token');
+      window.location.href = '/login';
     },
 
     redirectToLogin() {

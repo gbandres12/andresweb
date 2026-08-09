@@ -22,7 +22,15 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', server: 'AndresWeb Self-Hosted Engine', timestamp: new Date().toISOString() });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor AndresWeb rodando na porta ${PORT}`);
-  console.log(`🔗 API Base: http://localhost:${PORT}/api`);
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', server: 'AndresWeb Self-Hosted Engine', timestamp: new Date().toISOString() });
 });
+
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`🚀 Servidor AndresWeb rodando na porta ${PORT}`);
+    console.log(`🔗 API Base: http://localhost:${PORT}/api`);
+  });
+}
+
+export default app;
