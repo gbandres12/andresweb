@@ -45,6 +45,15 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', server: 'AndresWeb Self-Hosted Engine', timestamp: new Date().toISOString() });
 });
 
+app.use((req, res) => {
+  res.status(404).json({ error: 'Rota não encontrada', url: req.url, method: req.method });
+});
+
+app.use((err, req, res, next) => {
+  console.error('Erro global do servidor:', err);
+  res.status(500).json({ error: 'Erro interno do servidor', message: err.message });
+});
+
 if (!process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`🚀 Servidor AndresWeb rodando na porta ${PORT}`);
