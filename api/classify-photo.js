@@ -109,7 +109,7 @@ Retorne estritamente um JSON sintaticamente válido no seguinte formato:
       season: 'Verão 2026',
       estimated_pieces: 15,
       suggested_price: 189.90,
-      suggested_cost_price": 79.90,
+      suggested_cost_price: 79.90,
       confidence: 'alta',
       observations: 'Identificado lote com 15 unidades de vestidos tamanho M/G em perfeitas condições.'
     });
