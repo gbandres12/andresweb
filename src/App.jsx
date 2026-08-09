@@ -31,34 +31,13 @@ import Trocas from '@/pages/Trocas';
 import Consignacoes from '@/pages/Consignacoes';
 import Login from '@/pages/Login';
 
-const AuthenticatedApp = () => {
+const ProtectedRoute = ({ children }) => {
   const { isLoadingAuth, isAuthenticated, authError } = useAuth();
-  const currentPath = window.location.pathname;
-
-  // Rotas totalmente públicas
-  if (currentPath === '/catalogo') {
-    return (
-      <Routes>
-        <Route path="/catalogo" element={<Catalogo />} />
-      </Routes>
-    );
-  }
-
-  if (currentPath === '/login') {
-    if (isAuthenticated) {
-      return <Navigate to="/" replace />;
-    }
-    return (
-      <Routes>
-        <Route path="/login" element={<Login />} />
-      </Routes>
-    );
-  }
 
   if (isLoadingAuth) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-background">
-        <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+      <div className="fixed inset-0 flex items-center justify-center bg-slate-950 text-white">
+        <div className="w-8 h-8 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -71,17 +50,59 @@ const AuthenticatedApp = () => {
     return <UserNotRegisteredError />;
   }
 
+  return children;
+};
+
+const PublicOnlyRoute = ({ children }) => {
+  const { isLoadingAuth, isAuthenticated } = useAuth();
+
+  if (isLoadingAuth) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-slate-950 text-white">
+        <div className="w-8 h-8 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+};
+
+const AppRoutes = () => {
   return (
     <Routes>
-      {/* Public catalog */}
+      {/* Rotas Públicas */}
       <Route path="/catalogo" element={<Catalogo />} />
-      <Route path="/login" element={<Login />} />
+      <Route 
+        path="/login" 
+        element={
+          <PublicOnlyRoute>
+            <Login />
+          </PublicOnlyRoute>
+        } 
+      />
 
-      {/* Caixa Rápido */}
-      <Route path="/caixa-rapido" element={<StoreProvider><CaixaRapido /></StoreProvider>} />
+      {/* Rota Especial Caixa Rápido */}
+      <Route 
+        path="/caixa-rapido" 
+        element={
+          <ProtectedRoute>
+            <StoreProvider><CaixaRapido /></StoreProvider>
+          </ProtectedRoute>
+        } 
+      />
 
-      {/* Admin app with sidebar layout */}
-      <Route element={<StoreProvider><Layout /></StoreProvider>}>
+      {/* Rotas Protegidas no Layout Admin */}
+      <Route 
+        element={
+          <ProtectedRoute>
+            <StoreProvider><Layout /></StoreProvider>
+          </ProtectedRoute>
+        }
+      >
         <Route path="/" element={<Dashboard />} />
         <Route path="/pdv" element={<PDV />} />
         <Route path="/produtos" element={<Produtos />} />
@@ -114,7 +135,7 @@ function App() {
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
         <Router>
-          <AuthenticatedApp />
+          <AppRoutes />
         </Router>
         <Toaster />
       </QueryClientProvider>
