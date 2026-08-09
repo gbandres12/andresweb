@@ -40,11 +40,12 @@ export default function Financeiro() {
   );
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-3xl font-serif font-semibold">Financeiro</h1>
-        <p className="text-muted-foreground text-sm mt-0.5">Gestão financeira completa do negócio</p>
-      </div>
+    <div className="min-h-screen bg-slate-50 dark:bg-background pb-12">
+      <div className="p-6 max-w-7xl mx-auto">
+        <div className="mb-6">
+          <h1 className="text-3xl font-serif font-semibold text-slate-900 dark:text-slate-100">Financeiro</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-0.5">Gestão financeira completa do negócio</p>
+        </div>
 
       <Tabs defaultValue="dashboard">
         <TabsList className="mb-6">
@@ -97,6 +98,7 @@ export default function Financeiro() {
           <ComissoesManager />
         </TabsContent>
         </Tabs>
+      </div>
     </div>
   );
 }

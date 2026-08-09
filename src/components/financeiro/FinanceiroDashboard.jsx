@@ -97,19 +97,19 @@ export default function FinanceiroDashboard({ sales, expenses, transactions, sel
           color="red"
         />
         <div className={cn(
-          "rounded-2xl border p-4",
-          netProfit >= 0 ? "bg-green-50 border-green-200" : "bg-destructive/10 border-destructive/20"
+          "rounded-2xl border p-4 shadow-sm",
+          netProfit >= 0 ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900" : "bg-destructive/10 border-destructive/20"
         )}>
           <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center mb-2",
-            netProfit >= 0 ? "bg-green-100 text-green-700" : "bg-destructive/20 text-destructive"
+            netProfit >= 0 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400" : "bg-destructive/20 text-destructive"
           )}>
             <DollarSign className="w-4 h-4" />
           </div>
-          <p className={cn("text-xl font-serif font-semibold", netProfit >= 0 ? "text-green-700" : "text-destructive")}>
+          <p className={cn("text-xl font-serif font-semibold", netProfit >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-destructive")}>
             R$ {Math.abs(netProfit).toFixed(2).replace('.', ',')}
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">Lucro Líquido</p>
-          <p className={cn("text-xs font-medium mt-1", netProfit >= 0 ? "text-green-600" : "text-destructive")}>
+          <p className={cn("text-xs font-medium mt-1", netProfit >= 0 ? "text-emerald-600 dark:text-emerald-500" : "text-destructive")}>
             {netProfit < 0 ? '⚠ Prejuízo' : `Margem: ${margin.toFixed(1)}%`}
           </p>
         </div>
@@ -124,22 +124,22 @@ export default function FinanceiroDashboard({ sales, expenses, transactions, sel
 
       {/* Chart + Category breakdown */}
       <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-card rounded-2xl border border-border p-5">
-          <h3 className="font-serif text-base font-semibold mb-4">Receitas vs Despesas (6 meses)</h3>
+        <div className="lg:col-span-2 bg-white dark:bg-card shadow-sm rounded-2xl border border-slate-200 dark:border-border p-5">
+          <h3 className="font-serif text-base font-semibold mb-4 text-slate-900 dark:text-slate-100">Receitas vs Despesas (6 meses)</h3>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={chartData} barGap={4}>
               <XAxis dataKey="label" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `R$${(v/1000).toFixed(0)}k`} />
-              <Tooltip formatter={(val) => [`R$ ${val.toFixed(2)}`, '']} />
+              <Tooltip formatter={(val) => [`R$ ${val.toFixed(2)}`, '']} cursor={{fill: 'rgba(0,0,0,0.05)'}} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Bar dataKey="receita" name="Receita" fill="hsl(142,71%,45%)" radius={[4,4,0,0]} />
-              <Bar dataKey="despesa" name="Despesa" fill="hsl(0,72%,51%)" radius={[4,4,0,0]} />
+              <Bar dataKey="receita" name="Receita" fill="#059669" radius={[4,4,0,0]} />
+              <Bar dataKey="despesa" name="Despesa" fill="#ef4444" radius={[4,4,0,0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
-        <div className="bg-card rounded-2xl border border-border p-5">
-          <h3 className="font-serif text-base font-semibold mb-4">Top Despesas por Categoria</h3>
+        <div className="bg-white dark:bg-card shadow-sm rounded-2xl border border-slate-200 dark:border-border p-5">
+          <h3 className="font-serif text-base font-semibold mb-4 text-slate-900 dark:text-slate-100">Top Despesas por Categoria</h3>
           {expenseByCategory.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">Sem despesas no mês</p>
           ) : (
@@ -150,9 +150,9 @@ export default function FinanceiroDashboard({ sales, expenses, transactions, sel
                     <span className="text-muted-foreground">{cat}</span>
                     <span className="font-medium">R$ {val.toFixed(2).replace('.', ',')}</span>
                   </div>
-                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div className="h-1.5 rounded-full bg-slate-100 dark:bg-muted overflow-hidden">
                     <div
-                      className="h-full bg-primary rounded-full"
+                      className="h-full bg-emerald-500 rounded-full"
                       style={{ width: `${Math.min((val / totalCosts) * 100, 100)}%` }}
                     />
                   </div>
@@ -168,14 +168,14 @@ export default function FinanceiroDashboard({ sales, expenses, transactions, sel
 
 function KpiCard({ icon: Icon, label, value, sub, color }) {
   const colors = {
-    green: 'bg-green-50 border-green-200 text-green-700',
-    red: 'bg-destructive/10 border-destructive/20 text-destructive',
-    orange: 'bg-orange-50 border-orange-200 text-orange-600',
+    green: 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-900 dark:text-emerald-400 shadow-sm',
+    red: 'bg-destructive/10 border-destructive/20 text-destructive shadow-sm',
+    orange: 'bg-orange-50 border-orange-200 text-orange-600 dark:bg-orange-950/30 dark:border-orange-900 dark:text-orange-400 shadow-sm',
   };
   const iconColors = {
-    green: 'bg-green-100 text-green-700',
+    green: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400',
     red: 'bg-destructive/20 text-destructive',
-    orange: 'bg-orange-100 text-orange-600',
+    orange: 'bg-orange-100 text-orange-600 dark:bg-orange-900/50 dark:text-orange-400',
   };
   return (
     <div className={cn("rounded-2xl border p-4", colors[color])}>
