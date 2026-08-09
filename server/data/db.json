@@ -14,30 +14,9 @@
   "StockMovement": [],
   "Store": [
     {
-      "id": "f3dbda47-e09f-423f-9534-e917b371833f",
-      "name": "Loja 2 - Shopping",
-      "organization_id": "a2f98b35-d555-4330-b70f-1d232af88ffe",
-      "created_date": "2026-08-09T05:34:13.642Z",
-      "updated_date": "2026-08-09T05:34:13.642Z"
-    },
-    {
-      "id": "7e0bc747-6096-4b64-b08e-12bbc406c7a7",
-      "name": "Loja 1 - Centro",
-      "organization_id": "a2f98b35-d555-4330-b70f-1d232af88ffe",
-      "created_date": "2026-08-09T05:34:13.642Z",
-      "updated_date": "2026-08-09T05:34:13.642Z"
-    },
-    {
-      "id": "a2f98b35-d555-4330-b70f-1d232af88ffe",
-      "name": "Grupo Moda Cliente A (5 Lojas)",
-      "plan": "enterprise",
-      "created_date": "2026-08-09T05:34:13.641Z",
-      "updated_date": "2026-08-09T05:34:13.641Z"
-    },
-    {
-      "id": "ef1b8a2c-66f1-4c27-b352-1bcaccbd4a7f",
-      "name": "Nina Star",
-      "created_by_id": "c371ce3e-5735-487d-aa1d-3d8d4fe7cdf4",
+      "id": "83f45b54-7a6e-41bf-8513-abf5ad398e14",
+      "name": "Loja Teste",
+      "created_by_id": "3c92e5ee-fa23-4567-a0b1-79c854ec8125",
       "settings": {
         "tables": [
           {
@@ -53,69 +32,64 @@
           "Cartão de Débito"
         ]
       },
-      "created_date": "2026-08-09T03:04:53.007Z",
-      "updated_date": "2026-08-09T03:04:53.007Z"
+      "created_date": "2026-08-09T06:10:08.376Z",
+      "updated_date": "2026-08-09T06:10:08.376Z"
+    },
+    {
+      "id": "store-demo-1",
+      "name": "Loja Matriz - Centro",
+      "plan": "pro"
     }
   ],
   "Transaction": [],
   "Transfer": [],
   "User": [
     {
-      "id": "e27c319c-6ef8-4329-9aac-c4f8481d68e2",
-      "email": "vendedor.loja1@clienteA.com",
-      "full_name": "Lucas (Vendedor Loja 1)",
-      "role": "vendedor",
-      "store_role": "vendedor",
-      "password_hash": "$2a$10$DIhbO/BsRMGXzoNG0YZvM.k.m.DPskwaUreqnBJyXKZUw.cmCfIY6",
-      "organization_id": "a2f98b35-d555-4330-b70f-1d232af88ffe",
-      "store_id": "7e0bc747-6096-4b64-b08e-12bbc406c7a7",
-      "created_date": "2026-08-09T05:34:13.642Z",
-      "updated_date": "2026-08-09T05:34:13.642Z"
-    },
-    {
-      "id": "545a8791-b3c6-4af4-85cc-bd6ab83f0b99",
-      "email": "gerente.loja1@clienteA.com",
-      "full_name": "Mariana (Gerente Loja 1)",
-      "role": "store_manager",
-      "store_role": "store_manager",
-      "password_hash": "$2a$10$DIhbO/BsRMGXzoNG0YZvM.k.m.DPskwaUreqnBJyXKZUw.cmCfIY6",
-      "organization_id": "a2f98b35-d555-4330-b70f-1d232af88ffe",
-      "store_id": "7e0bc747-6096-4b64-b08e-12bbc406c7a7",
-      "created_date": "2026-08-09T05:34:13.642Z",
-      "updated_date": "2026-08-09T05:34:13.642Z"
-    },
-    {
-      "id": "68c7046f-ac7e-4764-92e7-e6b425d306b7",
-      "email": "dono@clienteA.com",
-      "full_name": "Carlos (Dono do Cliente A)",
+      "id": "3c92e5ee-fa23-4567-a0b1-79c854ec8125",
+      "email": "teste@teste.com",
+      "full_name": "Teste User",
+      "password_hash": "$2a$10$mJP5GR9XbHdB2dTXmnVByuj7ctT1MaeBGrPKwuKjm46GndIixniaS",
       "role": "org_admin",
       "store_role": "org_admin",
-      "password_hash": "$2a$10$DIhbO/BsRMGXzoNG0YZvM.k.m.DPskwaUreqnBJyXKZUw.cmCfIY6",
-      "organization_id": "a2f98b35-d555-4330-b70f-1d232af88ffe",
-      "store_id": "7e0bc747-6096-4b64-b08e-12bbc406c7a7",
-      "created_date": "2026-08-09T05:34:13.642Z",
-      "updated_date": "2026-08-09T05:34:13.642Z"
+      "store_id": "83f45b54-7a6e-41bf-8513-abf5ad398e14",
+      "created_date": "2026-08-09T06:10:08.377Z",
+      "updated_date": "2026-08-09T06:10:08.377Z"
     },
     {
-      "id": "1012dd1b-0cca-434c-87f7-cb54190a004d",
+      "id": "user-superadmin-1",
       "email": "superadmin@andresweb.com",
       "full_name": "Gabriel (Super Admin SaaS)",
       "role": "superadmin",
       "store_role": "superadmin",
-      "password_hash": "$2a$10$DIhbO/BsRMGXzoNG0YZvM.k.m.DPskwaUreqnBJyXKZUw.cmCfIY6",
-      "store_id": null,
-      "created_date": "2026-08-09T05:34:13.642Z",
-      "updated_date": "2026-08-09T05:34:13.642Z"
+      "password_hash": "$2a$10$7jCaWuXMicTaPvzON27/RukQHOfmkVANxPPhB1DohAxJwaBPi9XeK",
+      "store_id": "store-demo-1"
     },
     {
-      "id": "c371ce3e-5735-487d-aa1d-3d8d4fe7cdf4",
-      "email": "gabrielandres052@gmail.com",
-      "full_name": "Gabriel",
-      "password_hash": "$2a$10$1.JFzAXwmoUqT4jOrMW.D.5b4dMlOrKpzjA68S5IMMfCtgiSLmC3u",
-      "role": "admin",
-      "store_id": "ef1b8a2c-66f1-4c27-b352-1bcaccbd4a7f",
-      "created_date": "2026-08-09T03:04:53.008Z",
-      "updated_date": "2026-08-09T03:04:53.008Z"
+      "id": "user-dono-1",
+      "email": "dono@clienteA.com",
+      "full_name": "Carlos (Dono do Cliente A)",
+      "role": "org_admin",
+      "store_role": "org_admin",
+      "password_hash": "$2a$10$7jCaWuXMicTaPvzON27/RukQHOfmkVANxPPhB1DohAxJwaBPi9XeK",
+      "store_id": "store-demo-1"
+    },
+    {
+      "id": "user-gerente-1",
+      "email": "gerente.loja1@clienteA.com",
+      "full_name": "Mariana (Gerente Loja 1)",
+      "role": "store_manager",
+      "store_role": "store_manager",
+      "password_hash": "$2a$10$7jCaWuXMicTaPvzON27/RukQHOfmkVANxPPhB1DohAxJwaBPi9XeK",
+      "store_id": "store-demo-1"
+    },
+    {
+      "id": "user-vendedor-1",
+      "email": "vendedor.loja1@clienteA.com",
+      "full_name": "Lucas (Vendedor Loja 1)",
+      "role": "vendedor",
+      "store_role": "vendedor",
+      "password_hash": "$2a$10$7jCaWuXMicTaPvzON27/RukQHOfmkVANxPPhB1DohAxJwaBPi9XeK",
+      "store_id": "store-demo-1"
     }
   ]
 }

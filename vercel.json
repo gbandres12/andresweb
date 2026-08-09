@@ -1,5 +1,12 @@
 {
   "version": 2,
+  "buildCommand": "vite build",
+  "outputDirectory": "dist",
+  "functions": {
+    "api/**/*.js": {
+      "includeFiles": "server/**"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",
@@ -10,7 +17,7 @@
       "destination": "/api/index.js"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!api|uploads).*)",
       "destination": "/index.html"
     }
   ]
