@@ -1,11 +1,11 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { db } from '../_lib/database.js';
+import { supabase } from '../_lib/supabase.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'andresweb-secret-jwt-key-2026';
 
-export default function handler(req, res) {
-  // CORS
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-auth-token');
@@ -25,8 +25,22 @@ export default function handler(req, res) {
     }
 
     const cleanEmail = String(email).toLowerCase().trim();
-    const users = db.filter('User', { email: cleanEmail });
-    const user = users[0];
+
+    // 1. Busca primeiro no Supabase
+    let user = null;
+    const { data: sbUser } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', cleanEmail)
+      .maybeSingle();
+
+    if (sbUser) {
+      user = sbUser;
+    } else {
+      // Fallback para DB local
+      const users = db.filter('User', { email: cleanEmail });
+      user = users[0];
+    }
 
     if (!user) {
       return res.status(401).json({ error: 'Usuario nao encontrado com esse e-mail' });
@@ -47,6 +61,17 @@ export default function handler(req, res) {
 
     if (!match) {
       return res.status(401).json({ error: 'Senha incorreta' });
+    }
+
+    // Se o usuario existe localmente mas ainda nao estava no Supabase, sincroniza agora!
+    if (!sbUser && user) {
+      await supabase.from('users').upsert({
+        id: user.id,
+        email: user.email,
+        full_name: user.full_name || 'Usuario',
+        role: user.role || 'vendedor',
+        password_hash: user.password_hash || bcrypt.hashSync('123456', 10)
+      }).catch(() => {});
     }
 
     const token = jwt.sign(
