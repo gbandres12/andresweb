@@ -1,19 +1,29 @@
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const DATA_DIR = path.join(__dirname, '../data');
 
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+// No Vercel ou ambientes Serverless, o único diretório gravável é o /tmp
+const IS_SERVERLESS = !!process.env.VERCEL || process.env.NODE_ENV === 'production';
+const DATA_DIR = IS_SERVERLESS 
+  ? path.join(os.tmpdir(), 'andresweb-data')
+  : path.join(__dirname, '../data');
+
+try {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+} catch (err) {
+  console.warn('Aviso: Falha ao criar diretório de dados local:', err.message);
 }
 
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 
-// Entidades suportadas no sistema
 const ENTITIES = [
   'CashMovement', 'CashRegister', 'Category', 'Commission',
   'ConciliationEntry', 'CostCenter', 'Customer', 'Employee',
@@ -25,29 +35,91 @@ class Database {
   constructor() {
     this.data = {};
     this.load();
+    this.ensureDefaultUsers();
   }
 
   load() {
-    if (fs.existsSync(DB_FILE)) {
-      try {
+    try {
+      if (fs.existsSync(DB_FILE)) {
         const raw = fs.readFileSync(DB_FILE, 'utf-8');
         this.data = JSON.parse(raw);
-      } catch (err) {
-        console.error('Erro ao ler db.json, reiniciando dados:', err);
-        this.data = {};
       }
+    } catch (err) {
+      console.warn('Aviso ao carregar dados do arquivo:', err.message);
+      this.data = {};
     }
-    // Garante que todas as entidades existam
+
     for (const entity of ENTITIES) {
       if (!Array.isArray(this.data[entity])) {
         this.data[entity] = [];
       }
     }
-    this.save();
   }
 
   save() {
-    fs.writeFileSync(DB_FILE, JSON.stringify(this.data, null, 2), 'utf-8');
+    try {
+      fs.writeFileSync(DB_FILE, JSON.stringify(this.data, null, 2), 'utf-8');
+    } catch (err) {
+      console.warn('Aviso ao salvar banco de dados local (modo in-memory fallback):', err.message);
+    }
+  }
+
+  ensureDefaultUsers() {
+    const users = this.getCollection('User');
+    if (users.length === 0) {
+      const passwordHash = bcrypt.hashSync('123456', 10);
+      
+      const store1 = {
+        id: 'store-demo-1',
+        name: 'Loja Matriz - Centro',
+        plan: 'pro'
+      };
+      this.data['Store'].push(store1);
+
+      const defaultUsers = [
+        {
+          id: 'user-superadmin-1',
+          email: 'superadmin@andresweb.com',
+          full_name: 'Gabriel (Super Admin SaaS)',
+          role: 'superadmin',
+          store_role: 'superadmin',
+          password_hash: passwordHash,
+          store_id: store1.id
+        },
+        {
+          id: 'user-dono-1',
+          email: 'dono@clienteA.com',
+          full_name: 'Carlos (Dono do Cliente A)',
+          role: 'org_admin',
+          store_role: 'org_admin',
+          password_hash: passwordHash,
+          store_id: store1.id
+        },
+        {
+          id: 'user-gerente-1',
+          email: 'gerente.loja1@clienteA.com',
+          full_name: 'Mariana (Gerente Loja 1)',
+          role: 'store_manager',
+          store_role: 'store_manager',
+          password_hash: passwordHash,
+          store_id: store1.id
+        },
+        {
+          id: 'user-vendedor-1',
+          email: 'vendedor.loja1@clienteA.com',
+          full_name: 'Lucas (Vendedor Loja 1)',
+          role: 'vendedor',
+          store_role: 'vendedor',
+          password_hash: passwordHash,
+          store_id: store1.id
+        }
+      ];
+
+      for (const u of defaultUsers) {
+        this.data['User'].push(u);
+      }
+      this.save();
+    }
   }
 
   getCollection(entityName) {
@@ -61,7 +133,6 @@ class Database {
     return crypto.randomUUID();
   }
 
-  // Operações de consulta
   list(entityName, sort = '-created_date', limit = 1000) {
     let items = [...this.getCollection(entityName)];
     return this.applySortAndLimit(items, sort, limit);
@@ -130,7 +201,6 @@ class Database {
     return true;
   }
 
-  // Avaliação de critérios de busca (suporta igualdade simples, $in, $or, $regex)
   matchCriteria(item, criteria) {
     for (const [key, val] of Object.entries(criteria)) {
       if (key === '$or' && Array.isArray(val)) {
@@ -164,7 +234,6 @@ class Database {
     return true;
   }
 
-  // Ordenação e limite
   applySortAndLimit(items, sort, limit) {
     if (sort) {
       const desc = sort.startsWith('-');
