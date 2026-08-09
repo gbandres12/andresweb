@@ -346,12 +346,12 @@ CREATE TABLE IF NOT EXISTS public.conciliation_entries (
 );
 
 -- --------------------------------------------------------
--- ÍNDICES DE ALTA PERFORMANCE (B-TREE & GIN)
+-- ÍNDICES DE ALTA PERFORMANCE (SINTAXE CORRETA POSTGRESQL)
 -- --------------------------------------------------------
 CREATE INDEX IF NOT EXISTS idx_stores_org ON public.stores(organization_id);
 CREATE INDEX IF NOT EXISTS idx_products_org_store ON public.products(organization_id, store_id);
-CREATE INDEX IF NOT EXISTS idx_products_variants GIN ON public.products(variants);
-CREATE INDEX IF NOT EXISTS idx_products_tags GIN ON public.products(tags);
+CREATE INDEX IF NOT EXISTS idx_products_variants ON public.products USING gin (variants);
+CREATE INDEX IF NOT EXISTS idx_products_tags ON public.products USING gin (tags);
 CREATE INDEX IF NOT EXISTS idx_sales_org_store ON public.sales(organization_id, store_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_org_store ON public.transactions(organization_id, store_id);
 CREATE INDEX IF NOT EXISTS idx_stock_movements_prod ON public.stock_movements(product_id);
