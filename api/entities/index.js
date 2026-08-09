@@ -1,7 +1,6 @@
 import { db } from '../_lib/database.js';
 import { supabase } from '../_lib/supabase.js';
 
-// Mapeia nomes de Entidade PascalCase para nomes de tabela snake_case no Supabase
 const entityToTableMap = {
   Store: 'stores',
   Organization: 'organizations',
@@ -33,8 +32,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { entity, id } = req.query || {};
-    const entityName = entity || 'Store';
+    // Restaura o path da entidade a partir da URL solicitada
+    const requestUrl = req.headers['x-forwarded-uri'] || req.headers['x-matched-path'] || req.url || '';
+    const pathname = requestUrl.split('?')[0]; // Remove query params
+    const parts = pathname.replace(/^\/api\/entities\/?/, '').split('/');
+    
+    const entityName = parts[0] || 'Store';
+    const id = parts[1] || null;
     const tableName = entityToTableMap[entityName] || entityName.toLowerCase() + 's';
 
     // 1. GET (Listar ou Buscar por ID)
@@ -69,7 +73,6 @@ export default async function handler(req, res) {
 
     // 2. POST (Criar ou Filtrar)
     if (req.method === 'POST') {
-      // Se for acao de filtro POST /api/entities/Store/filter
       if (id === 'filter') {
         const { criteria, sort, limit } = req.body || {};
         let filtered = db.filter(entityName, criteria, sort, limit);
@@ -80,14 +83,12 @@ export default async function handler(req, res) {
       const newId = bodyData.id || db.generateId();
       const payload = { id: newId, ...bodyData };
 
-      // Tenta salvar no Supabase
       try {
         await supabase.from(tableName).insert(payload);
       } catch (e) {
         console.warn(`Erro ao salvar ${tableName} no Supabase:`, e.message);
       }
 
-      // Salva no DB local em memoria
       const createdItem = db.create(entityName, payload);
       return res.status(200).json(createdItem);
     }

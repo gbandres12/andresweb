@@ -4,6 +4,10 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
+      "source": "/api/entities/(.*)",
+      "destination": "/api/entities/index.js"
+    },
+    {
       "source": "/((?!api|uploads).*)",
       "destination": "/index.html"
     }
