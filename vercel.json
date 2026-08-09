@@ -4,6 +4,14 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
+      "source": "/api/import-ai",
+      "destination": "/api/import-ai.js"
+    },
+    {
+      "source": "/api/integrations/import-ai",
+      "destination": "/api/import-ai.js"
+    },
+    {
       "source": "/api/entities/(.*)",
       "destination": "/api/entities/index.js"
     },
