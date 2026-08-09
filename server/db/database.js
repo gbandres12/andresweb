@@ -5,24 +5,28 @@ import { fileURLToPath } from 'url';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+let getDirname = () => {
+  try {
+    return path.dirname(fileURLToPath(import.meta.url));
+  } catch {
+    return process.cwd();
+  }
+};
 
-// No Vercel ou ambientes Serverless, o único diretório gravável é o /tmp
 const IS_SERVERLESS = !!process.env.VERCEL || process.env.NODE_ENV === 'production';
 const DATA_DIR = IS_SERVERLESS 
   ? path.join(os.tmpdir(), 'andresweb-data')
-  : path.join(__dirname, '../data');
+  : path.join(getDirname(), '../data');
 
 try {
-  if (!fs.existsSync(DATA_DIR)) {
+  if (DATA_DIR && !fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
 } catch (err) {
   console.warn('Aviso: Falha ao criar diretório de dados local:', err.message);
 }
 
-const DB_FILE = path.join(DATA_DIR, 'db.json');
+const DB_FILE = path.join(DATA_DIR || os.tmpdir(), 'db.json');
 
 const ENTITIES = [
   'CashMovement', 'CashRegister', 'Category', 'Commission',
