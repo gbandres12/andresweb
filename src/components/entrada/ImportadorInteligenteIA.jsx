@@ -44,7 +44,7 @@ export default function ImportadorInteligenteIA() {
           const jsonRows = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
 
           // Envia para o motor de classificacao IA da API
-          const res = await fetch('/api/integrations/import-ai', {
+          const res = await fetch('/api/import-ai', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -77,7 +77,7 @@ export default function ImportadorInteligenteIA() {
     setLoading(true);
     setParsedItems([]);
     try {
-      const res = await fetch('/api/integrations/import-ai', {
+      const res = await fetch('/api/import-ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode: activeTab })
