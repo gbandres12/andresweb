@@ -120,22 +120,34 @@ export default function ContasImporter({ onClose, onImported }) {
     setWorking(true); setStage('extraindo'); setItems([]);
     try {
       // 1) Extrai linhas com colunas separadas de débito/crédito + terceiro + data + saldo
+      //    O schema raiz deve ser um objeto; embrulhamos as linhas em "entries" para
+      //    extrair TODOS os lançamentos do extrato, não apenas o primeiro.
       const raw = await base44.integrations.Core.ExtractDataFromUploadedFile({
         file_url: fileUrl,
         json_schema: {
           type: 'object',
           properties: {
-            description: { type: 'string', description: 'Texto da coluna Descrição' },
-            counterparty: { type: 'string', description: 'Texto da coluna Terceiro (quem pagou/recebeu, ex.: BALCAO NINA STAR, nome do cliente)' },
-            debito: { type: 'number', description: 'Valor da coluna Débito (saída). 0 se vazio' },
-            credito: { type: 'number', description: 'Valor da coluna Crédito (entrada). 0 se vazio' },
-            date: { type: 'string', description: 'Data do lançamento em ISO yyyy-mm-dd, se houver' },
-            saldo: { type: 'number', description: 'Saldo acumulado da linha, se houver' },
+            entries: {
+              type: 'array',
+              description: 'Um item por linha do extrato/conta, na ordem em que aparecem',
+              items: {
+                type: 'object',
+                properties: {
+                  description: { type: 'string', description: 'Texto da coluna Descrição' },
+                  counterparty: { type: 'string', description: 'Texto da coluna Terceiro (quem pagou/recebeu, ex.: BALCAO NINA STAR, nome do cliente)' },
+                  debito: { type: 'number', description: 'Valor da coluna Débito (saída). 0 se vazio' },
+                  credito: { type: 'number', description: 'Valor da coluna Crédito (entrada). 0 se vazio' },
+                  date: { type: 'string', description: 'Data do lançamento em ISO yyyy-mm-dd, se houver' },
+                  saldo: { type: 'number', description: 'Saldo acumulado da linha, se houver' },
+                },
+              },
+            },
           },
         },
       });
       if (raw.status !== 'success') throw new Error(raw.details || 'Falha na extração');
-      const rows = Array.isArray(raw.output) ? raw.output : (raw.output ? [raw.output] : []);
+      const out = raw.output;
+      const rows = Array.isArray(out) ? out : (out?.entries || (out && !Array.isArray(out) && out.description ? [out] : []));
       if (!rows.length) { toast.error('Nenhum lançamento encontrado no arquivo'); setWorking(false); setStage(''); return; }
 
       // 2) Pré-processa: tipo e valor são determinísticos a partir de débito/crédito
