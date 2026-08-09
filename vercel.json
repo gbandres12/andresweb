@@ -8,6 +8,14 @@
       "destination": "/api/classify-photo.js"
     },
     {
+      "source": "/api/classify-photo/(.*)",
+      "destination": "/api/classify-photo.js"
+    },
+    {
+      "source": "/api/integrations/Core/InvokeLLM",
+      "destination": "/api/classify-photo.js"
+    },
+    {
       "source": "/api/import-ai",
       "destination": "/api/import-ai.js"
     },
