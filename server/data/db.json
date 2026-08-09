@@ -1,0 +1,19 @@
+{
+  "CashMovement": [],
+  "CashRegister": [],
+  "Category": [],
+  "Commission": [],
+  "ConciliationEntry": [],
+  "CostCenter": [],
+  "Customer": [],
+  "Employee": [],
+  "Exchange": [],
+  "Expense": [],
+  "Product": [],
+  "Sale": [],
+  "StockMovement": [],
+  "Store": [],
+  "Transaction": [],
+  "Transfer": [],
+  "User": []
+}

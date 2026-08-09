@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -29,12 +29,14 @@ import ConfiguracaoLoja from '@/pages/ConfiguracaoLoja';
 import Transferencias from '@/pages/Transferencias';
 import Trocas from '@/pages/Trocas';
 import Consignacoes from '@/pages/Consignacoes';
+import Login from '@/pages/Login';
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const { isLoadingAuth, isAuthenticated, authError } = useAuth();
+  const currentPath = window.location.pathname;
 
-  // Catálogo é sempre público — sem autenticação
-  if (window.location.pathname === '/catalogo') {
+  // Rotas totalmente públicas
+  if (currentPath === '/catalogo') {
     return (
       <Routes>
         <Route path="/catalogo" element={<Catalogo />} />
@@ -42,7 +44,18 @@ const AuthenticatedApp = () => {
     );
   }
 
-  if (isLoadingPublicSettings || isLoadingAuth) {
+  if (currentPath === '/login') {
+    if (isAuthenticated) {
+      return <Navigate to="/" replace />;
+    }
+    return (
+      <Routes>
+        <Route path="/login" element={<Login />} />
+      </Routes>
+    );
+  }
+
+  if (isLoadingAuth) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-background">
         <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
@@ -50,21 +63,21 @@ const AuthenticatedApp = () => {
     );
   }
 
-  if (authError) {
-    if (authError.type === 'user_not_registered') {
-      return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      navigateToLogin();
-      return null;
-    }
+  if (!isAuthenticated || authError?.type === 'auth_required') {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (authError?.type === 'user_not_registered') {
+    return <UserNotRegisteredError />;
   }
 
   return (
     <Routes>
-      {/* Public catalog — no layout wrapper */}
+      {/* Public catalog */}
       <Route path="/catalogo" element={<Catalogo />} />
+      <Route path="/login" element={<Login />} />
 
-      {/* Caixa Rápido — tela cheia, sem menu lateral (ESC para sair) */}
+      {/* Caixa Rápido */}
       <Route path="/caixa-rapido" element={<StoreProvider><CaixaRapido /></StoreProvider>} />
 
       {/* Admin app with sidebar layout */}
