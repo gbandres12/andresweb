@@ -4,6 +4,7 @@ import { db } from '../_lib/database.js';
 import { supabase } from '../_lib/supabase.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'andresweb-secret-jwt-key-2026';
+// Version v1.0.1 - Supabase Async Clean Insert
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
