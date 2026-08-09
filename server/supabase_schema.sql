@@ -39,10 +39,11 @@ CREATE TABLE IF NOT EXISTS public.stores (
 -- 3. PERFIS DE USUÁRIOS E PERMISSÕES
 -- --------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.users (
-    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email TEXT NOT NULL,
     full_name TEXT,
     role TEXT NOT NULL DEFAULT 'store_manager', -- 'superadmin', 'org_admin', 'store_manager', 'cashier'
+    password_hash TEXT,
     organization_id UUID REFERENCES public.organizations(id) ON DELETE SET NULL,
     store_id UUID REFERENCES public.stores(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT now(),
