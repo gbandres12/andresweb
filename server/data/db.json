@@ -12,8 +12,42 @@
   "Product": [],
   "Sale": [],
   "StockMovement": [],
-  "Store": [],
+  "Store": [
+    {
+      "id": "ef1b8a2c-66f1-4c27-b352-1bcaccbd4a7f",
+      "name": "Nina Star",
+      "created_by_id": "c371ce3e-5735-487d-aa1d-3d8d4fe7cdf4",
+      "settings": {
+        "tables": [
+          {
+            "id": "cliente_final",
+            "name": "Cliente Final",
+            "margin": 0
+          }
+        ],
+        "payment_methods": [
+          "Dinheiro",
+          "PIX",
+          "Cartão de Crédito",
+          "Cartão de Débito"
+        ]
+      },
+      "created_date": "2026-08-09T03:04:53.007Z",
+      "updated_date": "2026-08-09T03:04:53.007Z"
+    }
+  ],
   "Transaction": [],
   "Transfer": [],
-  "User": []
+  "User": [
+    {
+      "id": "c371ce3e-5735-487d-aa1d-3d8d4fe7cdf4",
+      "email": "gabrielandres052@gmail.com",
+      "full_name": "Gabriel",
+      "password_hash": "$2a$10$1.JFzAXwmoUqT4jOrMW.D.5b4dMlOrKpzjA68S5IMMfCtgiSLmC3u",
+      "role": "admin",
+      "store_id": "ef1b8a2c-66f1-4c27-b352-1bcaccbd4a7f",
+      "created_date": "2026-08-09T03:04:53.008Z",
+      "updated_date": "2026-08-09T03:04:53.008Z"
+    }
+  ]
 }
