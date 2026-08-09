@@ -46,17 +46,25 @@ export default async function handler(req, res) {
     const storeTitle = store_name || `Loja de ${userName}`;
 
     // 2. Insere Organizacao no Supabase
-    await supabase.from('organizations').insert({
-      id: orgId,
-      name: `Org - ${storeTitle}`
-    }).catch(() => {});
+    try {
+      await supabase.from('organizations').insert({
+        id: orgId,
+        name: `Org - ${storeTitle}`
+      });
+    } catch (e) {
+      console.warn('Erro org insert:', e.message);
+    }
 
     // 3. Insere Loja no Supabase
-    await supabase.from('stores').insert({
-      id: storeId,
-      organization_id: orgId,
-      name: storeTitle
-    }).catch(() => {});
+    try {
+      await supabase.from('stores').insert({
+        id: storeId,
+        organization_id: orgId,
+        name: storeTitle
+      });
+    } catch (e) {
+      console.warn('Erro store insert:', e.message);
+    }
 
     // 4. Insere Usuario na tabela public.users no Supabase
     const { error: userError } = await supabase.from('users').insert({
@@ -70,10 +78,10 @@ export default async function handler(req, res) {
     });
 
     if (userError) {
-      console.warn('Aviso ao salvar no Supabase (usando fallback db.json):', userError.message);
+      console.warn('Aviso ao salvar no Supabase:', userError.message);
     }
 
-    // 5. Salva tambem no DB local
+    // 5. Salva tambem no DB local para garantia
     const store = db.create('Store', {
       id: storeId,
       organization_id: orgId,
@@ -99,7 +107,13 @@ export default async function handler(req, res) {
     );
 
     const { password_hash: _, ...safeUser } = user;
-    return res.status(200).json({ token, user: safeUser, store, supabase_synced: !userError });
+    return res.status(200).json({ 
+      token, 
+      user: safeUser, 
+      store, 
+      supabase_synced: !userError,
+      supabase_error: userError ? userError.message : null 
+    });
   } catch (err) {
     console.error('Erro no cadastro:', err);
     return res.status(500).json({ error: 'Erro ao cadastrar usuario', details: err.message });

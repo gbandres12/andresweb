@@ -28,15 +28,21 @@ export default async function handler(req, res) {
 
     // 1. Busca primeiro no Supabase
     let user = null;
-    const { data: sbUser } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', cleanEmail)
-      .maybeSingle();
+    try {
+      const { data: sbUser } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', cleanEmail)
+        .maybeSingle();
 
-    if (sbUser) {
-      user = sbUser;
-    } else {
+      if (sbUser) {
+        user = sbUser;
+      }
+    } catch (e) {
+      console.warn('Erro ao consultar Supabase no login:', e.message);
+    }
+
+    if (!user) {
       // Fallback para DB local
       const users = db.filter('User', { email: cleanEmail });
       user = users[0];
@@ -61,17 +67,6 @@ export default async function handler(req, res) {
 
     if (!match) {
       return res.status(401).json({ error: 'Senha incorreta' });
-    }
-
-    // Se o usuario existe localmente mas ainda nao estava no Supabase, sincroniza agora!
-    if (!sbUser && user) {
-      await supabase.from('users').upsert({
-        id: user.id,
-        email: user.email,
-        full_name: user.full_name || 'Usuario',
-        role: user.role || 'vendedor',
-        password_hash: user.password_hash || bcrypt.hashSync('123456', 10)
-      }).catch(() => {});
     }
 
     const token = jwt.sign(
