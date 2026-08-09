@@ -12,10 +12,14 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Registrar rotas
+// Registrar rotas (suporta chamadas com /api/... e diretamente /...)
 app.use('/api', authRoutes);
 app.use('/api', entityRoutes);
 app.use('/api', functionRoutes);
+
+app.use('/', authRoutes);
+app.use('/', entityRoutes);
+app.use('/', functionRoutes);
 app.use(uploadRoutes);
 
 app.get('/health', (req, res) => {
