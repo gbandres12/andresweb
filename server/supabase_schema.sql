@@ -381,6 +381,7 @@ ALTER TABLE public.conciliation_entries ENABLE ROW LEVEL SECURITY;
 -- --------------------------------------------------------
 -- POLÍTICAS RLS COM "TO authenticated" E Ownership Predicates
 -- --------------------------------------------------------
+DROP POLICY IF EXISTS "Acesso Produtos Autenticados" ON public.products;
 CREATE POLICY "Acesso Produtos Autenticados" ON public.products
 FOR ALL TO authenticated
 USING (
@@ -392,6 +393,7 @@ WITH CHECK (
   OR organization_id = (auth.jwt() -> 'app_metadata' ->> 'organization_id')::uuid
 );
 
+DROP POLICY IF EXISTS "Acesso Vendas Autenticados" ON public.sales;
 CREATE POLICY "Acesso Vendas Autenticados" ON public.sales
 FOR ALL TO authenticated
 USING (
@@ -403,6 +405,7 @@ WITH CHECK (
   OR organization_id = (auth.jwt() -> 'app_metadata' ->> 'organization_id')::uuid
 );
 
+DROP POLICY IF EXISTS "Acesso Transações Autenticados" ON public.transactions;
 CREATE POLICY "Acesso Transações Autenticados" ON public.transactions
 FOR ALL TO authenticated
 USING (
