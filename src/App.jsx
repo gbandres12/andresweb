@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -29,80 +29,46 @@ import ConfiguracaoLoja from '@/pages/ConfiguracaoLoja';
 import Transferencias from '@/pages/Transferencias';
 import Trocas from '@/pages/Trocas';
 import Consignacoes from '@/pages/Consignacoes';
-import Login from '@/pages/Login';
 
-const ProtectedRoute = ({ children }) => {
-  const { isLoadingAuth, isAuthenticated, authError } = useAuth();
+const AuthenticatedApp = () => {
+  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
 
-  if (isLoadingAuth) {
+  // Catálogo é sempre público — sem autenticação
+  if (window.location.pathname === '/catalogo') {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-slate-950 text-white">
-        <div className="w-8 h-8 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
+      <Routes>
+        <Route path="/catalogo" element={<Catalogo />} />
+      </Routes>
+    );
+  }
+
+  if (isLoadingPublicSettings || isLoadingAuth) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-background">
+        <div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
       </div>
     );
   }
 
-  if (!isAuthenticated || authError?.type === 'auth_required') {
-    return <Navigate to="/login" replace />;
+  if (authError) {
+    if (authError.type === 'user_not_registered') {
+      return <UserNotRegisteredError />;
+    } else if (authError.type === 'auth_required') {
+      navigateToLogin();
+      return null;
+    }
   }
 
-  if (authError?.type === 'user_not_registered') {
-    return <UserNotRegisteredError />;
-  }
-
-  return children;
-};
-
-const PublicOnlyRoute = ({ children }) => {
-  const { isLoadingAuth, isAuthenticated } = useAuth();
-
-  if (isLoadingAuth) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-slate-950 text-white">
-        <div className="w-8 h-8 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  if (isAuthenticated) {
-    return <Navigate to="/" replace />;
-  }
-
-  return children;
-};
-
-const AppRoutes = () => {
   return (
     <Routes>
-      {/* Rotas Públicas */}
+      {/* Public catalog — no layout wrapper */}
       <Route path="/catalogo" element={<Catalogo />} />
-      <Route 
-        path="/login" 
-        element={
-          <PublicOnlyRoute>
-            <Login />
-          </PublicOnlyRoute>
-        } 
-      />
 
-      {/* Rota Especial Caixa Rápido */}
-      <Route 
-        path="/caixa-rapido" 
-        element={
-          <ProtectedRoute>
-            <StoreProvider><CaixaRapido /></StoreProvider>
-          </ProtectedRoute>
-        } 
-      />
+      {/* Caixa Rápido — tela cheia, sem menu lateral (ESC para sair) */}
+      <Route path="/caixa-rapido" element={<StoreProvider><CaixaRapido /></StoreProvider>} />
 
-      {/* Rotas Protegidas no Layout Admin */}
-      <Route 
-        element={
-          <ProtectedRoute>
-            <StoreProvider><Layout /></StoreProvider>
-          </ProtectedRoute>
-        }
-      >
+      {/* Admin app with sidebar layout */}
+      <Route element={<StoreProvider><Layout /></StoreProvider>}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/pdv" element={<PDV />} />
         <Route path="/produtos" element={<Produtos />} />
@@ -135,7 +101,7 @@ function App() {
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
         <Router>
-          <AppRoutes />
+          <AuthenticatedApp />
         </Router>
         <Toaster />
       </QueryClientProvider>

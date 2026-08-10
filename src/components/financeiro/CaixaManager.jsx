@@ -151,15 +151,15 @@ export default function CaixaManager({ sales }) {
   }
 
   const methodCards = [
-    { label: 'Dinheiro', value: totals.Dinheiro, cls: 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-900 dark:text-emerald-400 shadow-sm' },
-    { label: 'PIX', value: totals.PIX, cls: 'bg-blue-50 border-blue-200 text-blue-700 shadow-sm' },
-    { label: 'Cartão', value: totals.Cartão, cls: 'bg-purple-50 border-purple-200 text-purple-700 shadow-sm' },
-    { label: 'Consignado', value: totals.Consignado, cls: 'bg-amber-50 border-amber-200 text-amber-700 shadow-sm' },
+    { label: 'Dinheiro', value: totals.Dinheiro, cls: 'bg-green-50 border-green-200 text-green-700' },
+    { label: 'PIX', value: totals.PIX, cls: 'bg-blue-50 border-blue-200 text-blue-700' },
+    { label: 'Cartão', value: totals.Cartão, cls: 'bg-purple-50 border-purple-200 text-purple-700' },
+    { label: 'Consignado', value: totals.Consignado, cls: 'bg-amber-50 border-amber-200 text-amber-700' },
   ];
 
   return (
     <div className="space-y-5">
-      <div className="inline-flex rounded-lg border border-slate-200 dark:border-border bg-white dark:bg-card shadow-sm p-1">
+      <div className="inline-flex rounded-lg border border-border bg-card p-1">
         <button onClick={() => setView('current')} className={cn('px-4 py-1.5 text-sm font-medium rounded-md transition-colors', view === 'current' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}>
           Caixa Atual
         </button>
@@ -171,7 +171,7 @@ export default function CaixaManager({ sales }) {
       {view === 'log' ? (
         <CaixaLog />
       ) : !register ? (
-        <div className="bg-white dark:bg-card shadow-sm rounded-2xl border border-slate-200 dark:border-border p-8 text-center">
+        <div className="bg-card rounded-2xl border border-border p-8 text-center">
           <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
             <Wallet className="w-7 h-7 text-muted-foreground" />
           </div>
@@ -184,19 +184,19 @@ export default function CaixaManager({ sales }) {
         </div>
       ) : (
         <>
-          <div className="bg-white dark:bg-card shadow-sm rounded-2xl border border-slate-200 dark:border-border p-5 flex items-center justify-between flex-wrap gap-3">
+          <div className="bg-card rounded-2xl border border-border p-5 flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center">
-                <Wallet className="w-5 h-5 text-emerald-700 dark:text-emerald-400" />
+              <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center">
+                <Wallet className="w-5 h-5 text-green-700" />
               </div>
               <div>
-                <p className="font-serif text-lg font-semibold text-slate-900 dark:text-slate-100">Caixa Aberto</p>
-                <p className="text-xs text-slate-500 dark:text-muted-foreground">
+                <p className="font-serif text-lg font-semibold">Caixa Aberto</p>
+                <p className="text-xs text-muted-foreground">
                   Aberto em {format(new Date(register.opened_at), "dd/MM/yyyy 'às' HH:mm")} por {register.opened_by_name || '—'}
                 </p>
               </div>
             </div>
-            <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400 font-medium">Aberto</span>
+            <span className="text-xs px-2.5 py-1 rounded-full bg-green-100 text-green-700 font-medium">Aberto</span>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

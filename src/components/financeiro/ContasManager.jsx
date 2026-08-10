@@ -51,21 +51,21 @@ export default function ContasManager({ transactions, onRefresh }) {
 
   const statusIcon = { pago: Check, pendente: Clock, cancelado: X };
   const statusColor = {
-    pago: 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/30',
-    pendente: 'text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/30',
-    cancelado: 'text-slate-500 bg-slate-100 dark:text-muted-foreground dark:bg-muted',
+    pago: 'text-green-600 bg-green-50',
+    pendente: 'text-amber-600 bg-amber-50',
+    cancelado: 'text-muted-foreground bg-muted',
   };
 
   return (
     <div className="space-y-5">
       {/* Summary */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-emerald-50 border border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900 rounded-2xl p-4 shadow-sm">
-          <p className="text-xs text-slate-500 dark:text-muted-foreground mb-1">A Receber (pendente)</p>
-          <p className="text-xl font-serif font-semibold text-emerald-700 dark:text-emerald-400">R$ {totalReceivable.toFixed(2).replace('.', ',')}</p>
+        <div className="bg-green-50 border border-green-200 rounded-2xl p-4">
+          <p className="text-xs text-muted-foreground mb-1">A Receber (pendente)</p>
+          <p className="text-xl font-serif font-semibold text-green-700">R$ {totalReceivable.toFixed(2).replace('.', ',')}</p>
         </div>
-        <div className="bg-destructive/10 border border-destructive/20 rounded-2xl p-4 shadow-sm">
-          <p className="text-xs text-slate-500 dark:text-muted-foreground mb-1">A Pagar (pendente)</p>
+        <div className="bg-destructive/10 border border-destructive/20 rounded-2xl p-4">
+          <p className="text-xs text-muted-foreground mb-1">A Pagar (pendente)</p>
           <p className="text-xl font-serif font-semibold text-destructive">R$ {totalPayable.toFixed(2).replace('.', ',')}</p>
         </div>
       </div>
@@ -105,14 +105,14 @@ export default function ContasManager({ transactions, onRefresh }) {
       </div>
 
       {/* List */}
-      <div className="bg-white dark:bg-card shadow-sm rounded-2xl border border-slate-200 dark:border-border overflow-hidden">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden">
         <table className="w-full">
           <thead>
-            <tr className="bg-slate-50 dark:bg-muted/40 border-b border-slate-200 dark:border-border">
-              <th className="text-left px-5 py-3 text-xs font-medium text-slate-500 dark:text-muted-foreground uppercase tracking-wide">Descrição</th>
-              <th className="text-left px-4 py-3 text-xs font-medium text-slate-500 dark:text-muted-foreground uppercase tracking-wide hidden md:table-cell">Vencimento</th>
-              <th className="text-left px-4 py-3 text-xs font-medium text-slate-500 dark:text-muted-foreground uppercase tracking-wide">Valor</th>
-              <th className="text-left px-4 py-3 text-xs font-medium text-slate-500 dark:text-muted-foreground uppercase tracking-wide">Status</th>
+            <tr className="bg-muted/40 border-b border-border">
+              <th className="text-left px-5 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Descrição</th>
+              <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden md:table-cell">Vencimento</th>
+              <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Valor</th>
+              <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
@@ -121,22 +121,22 @@ export default function ContasManager({ transactions, onRefresh }) {
               const Icon = statusIcon[t.status] || Clock;
               const isOverdue = t.status === 'pendente' && t.due_date && t.due_date < format(new Date(), 'yyyy-MM-dd');
               return (
-                <tr key={t.id} className="border-b border-slate-200 dark:border-border last:border-0 hover:bg-slate-50 dark:hover:bg-muted/20 transition-colors">
+                <tr key={t.id} className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
                   <td className="px-5 py-3">
-                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{t.description}</p>
-                    <p className="text-xs text-slate-500 dark:text-muted-foreground">{t.type === 'receita' ? '↑ Receita' : '↓ Despesa'} · {t.category || '—'}</p>
-                    {t.customer_name && <p className="text-xs text-emerald-600 dark:text-emerald-500">Cliente: {t.customer_name}</p>}
+                    <p className="text-sm font-medium">{t.description}</p>
+                    <p className="text-xs text-muted-foreground">{t.type === 'receita' ? '↑ Receita' : '↓ Despesa'} · {t.category || '—'}</p>
+                    {t.customer_name && <p className="text-xs text-primary/80">Cliente: {t.customer_name}</p>}
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
                     {t.due_date ? (
-                      <span className={cn("text-sm", isOverdue ? "text-destructive font-medium" : "text-slate-500 dark:text-muted-foreground")}>
+                      <span className={cn("text-sm", isOverdue ? "text-destructive font-medium" : "text-muted-foreground")}>
                         {format(new Date(t.due_date + 'T00:00:00'), 'dd/MM/yyyy')}
                         {isOverdue && ' ⚠'}
                       </span>
-                    ) : <span className="text-sm text-slate-500 dark:text-muted-foreground">—</span>}
+                    ) : <span className="text-sm text-muted-foreground">—</span>}
                   </td>
                   <td className="px-4 py-3">
-                    <span className={cn("text-sm font-semibold font-serif", t.type === 'receita' ? "text-emerald-600 dark:text-emerald-500" : "text-destructive")}>
+                    <span className={cn("text-sm font-semibold font-serif", t.type === 'receita' ? "text-green-600" : "text-destructive")}>
                       {t.type === 'receita' ? '+' : '-'} R$ {(t.amount || 0).toFixed(2).replace('.', ',')}
                     </span>
                   </td>
@@ -149,7 +149,7 @@ export default function ContasManager({ transactions, onRefresh }) {
                   <td className="px-4 py-3">
                     <div className="flex gap-1 justify-end">
                       {t.status === 'pendente' && (
-                        <button onClick={() => markPaid(t)} title="Marcar como pago" className="p-1.5 rounded-lg hover:bg-emerald-100 text-slate-500 hover:text-emerald-600 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-400 transition-colors">
+                        <button onClick={() => markPaid(t)} title="Marcar como pago" className="p-1.5 rounded-lg hover:bg-green-100 text-muted-foreground hover:text-green-600 transition-colors">
                           <Check className="w-3.5 h-3.5" />
                         </button>
                       )}

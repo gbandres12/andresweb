@@ -1,197 +1,83 @@
-// Adaptador nativo REST para o backend próprio AndresWeb
-// Substitui 100% o @base44/sdk com suporte total às rotas /api
+import { createClient } from '@base44/sdk';
+import { appParams } from '@/lib/app-params';
 
-const API_BASE = '/api';
+const { appId, token, functionsVersion, appBaseUrl } = appParams;
 
-function getAuthToken() {
-  return localStorage.getItem('andresweb_token') || '';
-}
-
-function setAuthToken(token) {
-  if (token) {
-    localStorage.setItem('andresweb_token', token);
-  } else {
-    localStorage.removeItem('andresweb_token');
-  }
-}
-
-async function request(url, options = {}) {
-  const token = getAuthToken();
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-    ...(options.headers || {})
-  };
-
-  const response = await fetch(url, {
-    ...options,
-    headers
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const err = new Error(errorData.error || `Erro HTTP ${response.status}`);
-    err.status = response.status;
-    err.data = errorData;
-    throw err;
-  }
-
-  return response.json();
-}
-
-function createEntityClient(entityName) {
-  return {
-    async list(sort = '-created_date', limit = 1000) {
-      const query = new URLSearchParams({ _sort: sort, _limit: limit }).toString();
-      return request(`${API_BASE}/entities/${entityName}?${query}`);
-    },
-
-    async filter(criteria = {}, sort = '-created_date', limit = 1000) {
-      return request(`${API_BASE}/entities/${entityName}/filter`, {
-        method: 'POST',
-        body: JSON.stringify({ criteria, sort, limit })
-      });
-    },
-
-    async get(id) {
-      return request(`${API_BASE}/entities/${entityName}/${id}`);
-    },
-
-    async create(data) {
-      return request(`${API_BASE}/entities/${entityName}`, {
-        method: 'POST',
-        body: JSON.stringify(data)
-      });
-    },
-
-    async bulkCreate(items) {
-      return request(`${API_BASE}/entities/${entityName}/bulk`, {
-        method: 'POST',
-        body: JSON.stringify(items)
-      });
-    },
-
-    async update(id, data) {
-      return request(`${API_BASE}/entities/${entityName}/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(data)
-      });
-    },
-
-    async delete(id) {
-      return request(`${API_BASE}/entities/${entityName}/${id}`, {
-        method: 'DELETE'
-      });
-    }
-  };
-}
-
-const entitiesProxy = new Proxy({}, {
-  get(target, entityName) {
-    if (!target[entityName]) {
-      target[entityName] = createEntityClient(entityName);
-    }
-    return target[entityName];
-  }
+const _base44 = createClient({
+  appId,
+  token,
+  functionsVersion,
+  serverUrl: '',
+  requiresAuth: false,
+  appBaseUrl
 });
 
-export const base44 = {
-  entities: entitiesProxy,
-  get asServiceRole() {
-    return this;
-  },
+// ── Multi-tenant: auto-inject store_id on creates ──
+// Entidades que não recebem store_id (próprias da plataforma/SaaS)
+const EXCLUDED_ENTITIES = new Set(['Store', 'User']);
 
-  auth: {
-    async me() {
-      const res = await request(`${API_BASE}/auth/me`);
-      return res.data || res;
-    },
+let _cachedStoreId = null;
+let _storeIdPromise = null;
 
-    async login(email, password) {
-      const res = await request(`${API_BASE}/auth/login`, {
-        method: 'POST',
-        body: JSON.stringify({ email, password })
-      });
-      if (res.token) {
-        setAuthToken(res.token);
-      }
-      return res;
-    },
-
-    async register(payload) {
-      const res = await request(`${API_BASE}/auth/register`, {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
-      if (res.token) {
-        setAuthToken(res.token);
-      }
-      return res;
-    },
-
-    async updateMe(payload) {
-      return request(`${API_BASE}/auth/update-me`, {
-        method: 'PUT',
-        body: JSON.stringify(payload)
-      });
-    },
-
-    logout() {
-      setAuthToken(null);
-      localStorage.removeItem('andresweb_token');
-      window.location.href = '/login';
-    },
-
-    redirectToLogin() {
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
-      }
+async function resolveStoreId() {
+  if (_cachedStoreId) return _cachedStoreId;
+  if (_storeIdPromise) return _storeIdPromise;
+  _storeIdPromise = (async () => {
+    try {
+      const user = await _base44.auth.me();
+      _cachedStoreId = user?.data?.store_id || user?.store_id || null;
+    } catch {
+      _cachedStoreId = null;
+    } finally {
+      _storeIdPromise = null;
     }
-  },
+    return _cachedStoreId;
+  })();
+  return _storeIdPromise;
+}
 
-  functions: {
-    async invoke(functionName, payload) {
-      return request(`${API_BASE}/functions/${functionName}`, {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
+// Limpa o cache — chamar após onboarding (updateMe com store_id)
+export function refreshStoreId() {
+  _cachedStoreId = null;
+  _storeIdPromise = null;
+}
+
+const entityHandler = {
+  get(target, prop) {
+    const orig = target[prop];
+    if (prop === 'create' && typeof orig === 'function') {
+      return async (data, ...rest) => {
+        const storeId = await resolveStoreId();
+        const payload = storeId && !data?.store_id ? { ...data, store_id: storeId } : data;
+        return orig.call(target, payload, ...rest);
+      };
     }
-  },
-
-  integrations: {
-    Core: {
-      async UploadFile({ file }) {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const token = getAuthToken();
-        const res = await fetch(`${API_BASE}/integrations/Core/UploadFile`, {
-          method: 'POST',
-          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-          body: formData
-        });
-
-        if (!res.ok) throw new Error('Erro ao fazer upload do arquivo');
-        return res.json();
-      },
-
-      async InvokeLLM(payload) {
-        return request(`${API_BASE}/integrations/Core/InvokeLLM`, {
-          method: 'POST',
-          body: JSON.stringify(payload)
-        });
-      },
-
-      async ExtractDataFromUploadedFile(payload) {
-        return request(`${API_BASE}/integrations/Core/ExtractDataFromUploadedFile`, {
-          method: 'POST',
-          body: JSON.stringify(payload)
-        });
-      }
+    if (prop === 'bulkCreate' && typeof orig === 'function') {
+      return async (items, ...rest) => {
+        const storeId = await resolveStoreId();
+        const payload = storeId
+          ? (items || []).map(d => (d?.store_id ? d : { ...d, store_id: storeId }))
+          : items;
+        return orig.call(target, payload, ...rest);
+      };
     }
+    return orig;
   }
 };
 
-export function refreshStoreId() {
-  // No-op para compatibilidade
-}
+const entitiesProxy = new Proxy(_base44.entities, {
+  get(target, entityName) {
+    const entity = target[entityName];
+    if (!entity || typeof entity !== 'object' || EXCLUDED_ENTITIES.has(entityName)) {
+      return entity;
+    }
+    return new Proxy(entity, entityHandler);
+  }
+});
+
+export const base44 = new Proxy(_base44, {
+  get(target, prop) {
+    if (prop === 'entities') return entitiesProxy;
+    return target[prop];
+  }
+});

@@ -91,9 +91,9 @@ export default function ConciliacaoManager({ transactions, onRefresh }) {
 
   return (
     <div className="space-y-5">
-      <div className="bg-white dark:bg-card shadow-sm rounded-2xl border border-slate-200 dark:border-border p-5">
-        <h3 className="font-serif text-lg font-semibold mb-1 text-slate-900 dark:text-slate-100">Conciliação Bancária e de Cartões</h3>
-        <p className="text-sm text-slate-500 dark:text-muted-foreground mb-4">
+      <div className="bg-card rounded-2xl border border-border p-5">
+        <h3 className="font-serif text-lg font-semibold mb-1">Conciliação Bancária e de Cartões</h3>
+        <p className="text-sm text-muted-foreground mb-4">
           Importe um arquivo OFX/EDI de extrato bancário ou de adquirente de cartão. Recebíveis em aberto
           com valor correspondente são baixados automaticamente.
         </p>
@@ -107,7 +107,7 @@ export default function ConciliacaoManager({ transactions, onRefresh }) {
             <span className="text-xs px-2.5 py-1 rounded-full bg-muted font-medium">
               {source === 'cartao' ? 'Cartão' : 'Banco'}
             </span>
-            <span className="text-sm text-emerald-700 dark:text-emerald-400 font-medium">{conciliados} conciliado(s)</span>
+            <span className="text-sm text-green-700 font-medium">{conciliados} conciliado(s)</span>
             <span className="text-sm text-amber-700 font-medium">{semMatch} sem match</span>
             <Button onClick={confirmBaixa} disabled={processing} className="ml-auto">
               {processing ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-1.5" />}
@@ -118,26 +118,26 @@ export default function ConciliacaoManager({ transactions, onRefresh }) {
       </div>
 
       {entries && (
-        <div className="bg-white dark:bg-card shadow-sm rounded-2xl border border-slate-200 dark:border-border overflow-hidden">
+        <div className="bg-card rounded-2xl border border-border overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="bg-slate-50 dark:bg-muted/40 border-b border-slate-200 dark:border-border">
-                <th className="text-left px-5 py-3 text-xs font-medium text-slate-500 dark:text-muted-foreground uppercase">Data</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-slate-500 dark:text-muted-foreground uppercase">Descrição</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-slate-500 dark:text-muted-foreground uppercase">Status</th>
-                <th className="text-right px-4 py-3 text-xs font-medium text-slate-500 dark:text-muted-foreground uppercase">Valor</th>
+              <tr className="bg-muted/40 border-b border-border">
+                <th className="text-left px-5 py-3 text-xs font-medium text-muted-foreground uppercase">Data</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase">Descrição</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase">Status</th>
+                <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground uppercase">Valor</th>
               </tr>
             </thead>
             <tbody>
               {entries.transactions.map((tx, i) => (
-                <tr key={i} className="border-b border-slate-200 dark:border-border last:border-0 hover:bg-slate-50 dark:hover:bg-muted/20 transition-colors">
+                <tr key={i} className="border-b border-border last:border-0">
                   <td className="px-5 py-3 text-sm">
                     {tx.date ? format(new Date(tx.date + 'T00:00:00'), 'dd/MM/yyyy') : '—'}
                   </td>
                   <td className="px-4 py-3 text-sm">{tx.description || '—'}</td>
                   <td className="px-4 py-3">
                     {tx.matched ? (
-                      <span className="text-xs px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 font-medium flex items-center gap-1 w-fit">
+                      <span className="text-xs px-2 py-1 rounded-full bg-green-50 text-green-700 font-medium flex items-center gap-1 w-fit">
                         <CheckCircle2 className="w-3 h-3" /> Conciliado · {tx.matched.description}
                       </span>
                     ) : (
@@ -146,7 +146,7 @@ export default function ConciliacaoManager({ transactions, onRefresh }) {
                       </span>
                     )}
                   </td>
-                  <td className={cn('px-4 py-3 text-right text-sm font-semibold tabular-nums', tx.amount >= 0 ? 'text-emerald-600 dark:text-emerald-500' : 'text-destructive')}>
+                  <td className={cn('px-4 py-3 text-right text-sm font-semibold tabular-nums', tx.amount >= 0 ? 'text-green-600' : 'text-destructive')}>
                     {tx.amount >= 0 ? '+' : '-'} {fmt(Math.abs(tx.amount))}
                   </td>
                 </tr>

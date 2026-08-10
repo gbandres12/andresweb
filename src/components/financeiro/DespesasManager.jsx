@@ -77,24 +77,24 @@ export default function DespesasManager({ expenses, sales, selectedMonth, onMont
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-emerald-50 border border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900 rounded-2xl p-4 shadow-sm">
-          <p className="text-xs text-slate-500 dark:text-muted-foreground mb-1">Faturamento</p>
-          <p className="text-lg font-serif font-semibold text-emerald-700 dark:text-emerald-400">R$ {monthRevenue.toFixed(2).replace('.', ',')}</p>
+        <div className="bg-green-50 border border-green-200 rounded-2xl p-4">
+          <p className="text-xs text-muted-foreground mb-1">Faturamento</p>
+          <p className="text-lg font-serif font-semibold text-green-700">R$ {monthRevenue.toFixed(2).replace('.', ',')}</p>
         </div>
-        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 shadow-sm">
-          <p className="text-xs text-slate-500 dark:text-muted-foreground mb-1">Despesas Fixas</p>
+        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4">
+          <p className="text-xs text-muted-foreground mb-1">Despesas Fixas</p>
           <p className="text-lg font-serif font-semibold text-blue-700">R$ {totalFixed.toFixed(2).replace('.', ',')}</p>
         </div>
-        <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 shadow-sm">
-          <p className="text-xs text-slate-500 dark:text-muted-foreground mb-1">Despesas Variáveis</p>
+        <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4">
+          <p className="text-xs text-muted-foreground mb-1">Despesas Variáveis</p>
           <p className="text-lg font-serif font-semibold text-orange-600">R$ {totalVariable.toFixed(2).replace('.', ',')}</p>
         </div>
         <div className={cn(
-          "rounded-2xl border p-4 shadow-sm",
-          netProfit >= 0 ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900" : "bg-destructive/10 border-destructive/20"
+          "rounded-2xl border p-4",
+          netProfit >= 0 ? "bg-green-50 border-green-200" : "bg-destructive/10 border-destructive/20"
         )}>
-          <p className="text-xs text-slate-500 dark:text-muted-foreground mb-1">Lucro Líquido</p>
-          <p className={cn("text-lg font-serif font-semibold", netProfit >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-destructive")}>
+          <p className="text-xs text-muted-foreground mb-1">Lucro Líquido</p>
+          <p className={cn("text-lg font-serif font-semibold", netProfit >= 0 ? "text-green-700" : "text-destructive")}>
             R$ {Math.abs(netProfit).toFixed(2).replace('.', ',')}
           </p>
           {netProfit < 0 && <p className="text-xs text-destructive mt-1">⚠ Prejuízo</p>}
@@ -118,27 +118,27 @@ export default function DespesasManager({ expenses, sales, selectedMonth, onMont
       </div>
 
       {/* Table */}
-      <div className="bg-white dark:bg-card shadow-sm rounded-2xl border border-slate-200 dark:border-border overflow-hidden">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-slate-200 dark:border-border bg-slate-50 dark:bg-muted/40">
-              <th className="text-left px-5 py-3 text-xs font-medium text-slate-500 dark:text-muted-foreground uppercase tracking-wide">Descrição</th>
-              <th className="text-left px-4 py-3 text-xs font-medium text-slate-500 dark:text-muted-foreground uppercase tracking-wide hidden sm:table-cell">Categoria</th>
-              <th className="text-left px-4 py-3 text-xs font-medium text-slate-500 dark:text-muted-foreground uppercase tracking-wide hidden md:table-cell">Centro de custo</th>
-              <th className="text-left px-4 py-3 text-xs font-medium text-slate-500 dark:text-muted-foreground uppercase tracking-wide hidden sm:table-cell">Tipo</th>
-              <th className="text-left px-4 py-3 text-xs font-medium text-slate-500 dark:text-muted-foreground uppercase tracking-wide">Valor</th>
+            <tr className="border-b border-border bg-muted/40">
+              <th className="text-left px-5 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Descrição</th>
+              <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden sm:table-cell">Categoria</th>
+              <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden md:table-cell">Centro de custo</th>
+              <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden sm:table-cell">Tipo</th>
+              <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Valor</th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody>
             {filtered.map(e => (
-              <tr key={e.id} className="border-b border-slate-200 dark:border-border last:border-0 hover:bg-slate-50 dark:hover:bg-muted/20 transition-colors">
+              <tr key={e.id} className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
                 <td className="px-5 py-3">
-                  <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{e.description}</p>
-                  {e.notes && <p className="text-xs text-slate-500 dark:text-muted-foreground">{e.notes}</p>}
+                  <p className="text-sm font-medium">{e.description}</p>
+                  {e.notes && <p className="text-xs text-muted-foreground">{e.notes}</p>}
                 </td>
-                <td className="px-4 py-3 text-sm text-slate-500 dark:text-muted-foreground hidden sm:table-cell">{e.category || '—'}</td>
-                <td className="px-4 py-3 text-sm text-slate-500 dark:text-muted-foreground hidden md:table-cell">{ccName(e.cost_center) || '—'}</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground hidden sm:table-cell">{e.category || '—'}</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground hidden md:table-cell">{ccName(e.cost_center) || '—'}</td>
                 <td className="px-4 py-3 hidden sm:table-cell">
                   <span className={cn(
                     "text-xs px-2 py-0.5 rounded-full font-medium",

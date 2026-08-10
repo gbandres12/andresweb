@@ -72,8 +72,8 @@ export default function ComissoesManager() {
   return (
     <div className="space-y-5">
       {/* Configuração */}
-      <div className="bg-white dark:bg-card shadow-sm rounded-2xl border border-slate-200 dark:border-border p-5 space-y-4">
-        <h3 className="font-serif text-lg font-semibold text-slate-900 dark:text-slate-100">Regras de Comissionamento e Bloqueio</h3>
+      <div className="bg-card rounded-2xl border border-border p-5 space-y-4">
+        <h3 className="font-serif text-lg font-semibold">Regras de Comissionamento e Bloqueio</h3>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-sm font-medium mb-1.5 block">Base de cálculo</label>
@@ -123,36 +123,36 @@ export default function ComissoesManager() {
 
       {/* Resumo */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 shadow-sm">
-          <p className="text-xs text-slate-500 dark:text-muted-foreground mb-1">Comissões a pagar</p>
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+          <p className="text-xs text-muted-foreground mb-1">Comissões a pagar</p>
           <p className="text-xl font-serif font-semibold text-amber-700">{fmt(totalPendente)}</p>
         </div>
-        <div className="bg-emerald-50 border border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900 rounded-2xl p-4 shadow-sm">
-          <p className="text-xs text-slate-500 dark:text-muted-foreground mb-1">Comissões pagas</p>
-          <p className="text-xl font-serif font-semibold text-emerald-700 dark:text-emerald-400">{fmt(totalPago)}</p>
+        <div className="bg-green-50 border border-green-200 rounded-2xl p-4">
+          <p className="text-xs text-muted-foreground mb-1">Comissões pagas</p>
+          <p className="text-xl font-serif font-semibold text-green-700">{fmt(totalPago)}</p>
         </div>
       </div>
 
       {/* Lista */}
-      <div className="bg-white dark:bg-card shadow-sm rounded-2xl border border-slate-200 dark:border-border overflow-hidden">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden">
         {loading ? (
-          <div className="py-10 text-center text-slate-500 dark:text-muted-foreground text-sm">Carregando...</div>
+          <div className="py-10 text-center text-muted-foreground text-sm">Carregando...</div>
         ) : (
           <table className="w-full">
             <thead>
-              <tr className="bg-slate-50 dark:bg-muted/40 border-b border-slate-200 dark:border-border">
-                <th className="text-left px-5 py-3 text-xs font-medium text-slate-500 dark:text-muted-foreground uppercase">Venda</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-slate-500 dark:text-muted-foreground uppercase">Vendedor</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-slate-500 dark:text-muted-foreground uppercase hidden md:table-cell">Base</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-slate-500 dark:text-muted-foreground uppercase">Taxa</th>
-                <th className="text-right px-4 py-3 text-xs font-medium text-slate-500 dark:text-muted-foreground uppercase">Comissão</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-slate-500 dark:text-muted-foreground uppercase">Status</th>
+              <tr className="bg-muted/40 border-b border-border">
+                <th className="text-left px-5 py-3 text-xs font-medium text-muted-foreground uppercase">Venda</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase">Vendedor</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase hidden md:table-cell">Base</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase">Taxa</th>
+                <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground uppercase">Comissão</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase">Status</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody>
               {commissions.map(c => (
-                <tr key={c.id} className="border-b border-slate-200 dark:border-border last:border-0 hover:bg-slate-50 dark:hover:bg-muted/20">
+                <tr key={c.id} className="border-b border-border last:border-0 hover:bg-muted/20">
                   <td className="px-5 py-3 text-sm font-medium">{c.sale_number || '—'}</td>
                   <td className="px-4 py-3 text-sm">{c.seller_name}</td>
                   <td className="px-4 py-3 text-sm text-muted-foreground hidden md:table-cell">
@@ -161,13 +161,13 @@ export default function ComissoesManager() {
                   <td className="px-4 py-3 text-sm tabular-nums">{(c.rate || 0).toFixed(1)}%</td>
                   <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums">{fmt(c.amount)}</td>
                   <td className="px-4 py-3">
-                    <span className={cn('text-xs px-2 py-1 rounded-full font-medium', c.status === 'paga' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400' : 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400')}>
+                    <span className={cn('text-xs px-2 py-1 rounded-full font-medium', c.status === 'paga' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700')}>
                       {c.status}
                     </span>
                   </td>
                   <td className="px-4 py-3">
                     {c.status === 'pendente' && (
-                      <button onClick={() => markPaid(c)} className="p-1.5 rounded-lg hover:bg-emerald-100 text-slate-500 hover:text-emerald-600 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-400">
+                      <button onClick={() => markPaid(c)} className="p-1.5 rounded-lg hover:bg-green-100 text-muted-foreground hover:text-green-600">
                         <Check className="w-3.5 h-3.5" />
                       </button>
                     )}

@@ -1,65 +1,46 @@
-// Controle de Acesso por Papel (RBAC Hierárquico)
-// 1. superadmin    -> Super Admin do SaaS (Você - Controle total da plataforma)
-// 2. org_admin     -> Dono da Empresa / Grupo (Gestão de todas as filiais e gerentes)
-// 3. store_manager -> Gerente da Loja (Operacional + Financeiro + Estoque da loja)
-// 4. vendedor      -> Vendedor / Atendente (PDV, Caixa Rápido, Clientes, Vendas, Trocas)
+// Controle de acesso por papel dentro da loja (store_role)
+// dono (owner / admin)  -> acesso total + gestão de funcionários
+// gerente (manager)     -> acesso gerencial (operacional + financeiro/relatórios)
+// vendedor (staff)       -> acesso limitado (PDV, clientes, vendas)
 
-export const ROLES = [
-  { key: 'superadmin', label: 'Super Admin SaaS', tone: 'emerald' },
-  { key: 'org_admin', label: 'Dono da Empresa', tone: 'primary' },
-  { key: 'store_manager', label: 'Gerente da Loja', tone: 'indigo' },
-  { key: 'vendedor', label: 'Vendedor', tone: 'slate' },
+export const STORE_ROLES = [
+  { key: 'owner', label: 'Dono', tone: 'primary' },
+  { key: 'manager', label: 'Gerente', tone: 'indigo' },
+  { key: 'staff', label: 'Vendedor', tone: 'slate' },
 ];
 
-const ACCESS_BY_ROLE = {
-  superadmin: null, // Acesso Irrestrito Total
-  org_admin: null,  // Acesso Total ao grupo/filiais da empresa
-  store_manager: [
-    '/', '/pdv', '/caixa-rapido', '/produtos', '/estoque', '/estoque/entrada',
-    '/importar-nfe', '/entrada-inteligente', '/transferencias', '/pesquisa-global',
-    '/vendas', '/trocas', '/consignacoes', '/clientes', '/financeiro',
-    '/relatorios', '/calculadora', '/funcionarios'
+const ACCESS = {
+  owner: null, // null = acesso total
+  manager: [
+    '/pdv', '/caixa-rapido', '/produtos', '/entrada-inteligente', '/importar-nfe', '/estoque',
+    '/clientes', '/vendas', '/trocas', '/financeiro', '/calculadora',
+    '/pesquisa-global', '/relatorios', '/transferencias',
   ],
-  vendedor: [
-    '/pdv', '/caixa-rapido', '/vendas', '/trocas', '/consignacoes', '/clientes', '/produtos'
-  ]
+  staff: ['/pdv', '/caixa-rapido', '/clientes', '/vendas', '/trocas'],
 };
 
 export function roleLabel(key) {
-  return ROLES.find(r => r.key === key)?.label || key;
+  return STORE_ROLES.find(r => r.key === key)?.label || key;
 }
 
+// Resolve o papel efetivo do usuário: admin da plataforma = dono
 export function getRole(user) {
-  if (!user) return 'vendedor';
-  const role = user.role || user.store_role || 'vendedor';
-  if (role === 'admin' || role === 'owner') return 'org_admin';
-  return role;
+  if (!user) return 'staff';
+  if (user.role === 'admin') return 'owner';
+  return user?.data?.store_role || user?.store_role || 'staff';
 }
 
 export function canAccess(path, user) {
   const r = getRole(user);
-  if (r === 'superadmin' || r === 'org_admin') return true;
-  const list = ACCESS_BY_ROLE[r] || ACCESS_BY_ROLE.vendedor;
+  if (r === 'owner') return true;
+  const list = ACCESS[r] || ACCESS.staff;
   return list.includes(path);
 }
 
 export function homeForRole(user) {
-  const r = getRole(user);
-  if (r === 'vendedor') return '/pdv';
-  if (r === 'superadmin') return '/';
-  return '/';
+  return getRole(user) === 'staff' ? '/pdv' : '/';
 }
 
-export function isSuperAdmin(user) {
-  return getRole(user) === 'superadmin';
-}
-
-export function isOrgAdmin(user) {
-  const r = getRole(user);
-  return r === 'superadmin' || r === 'org_admin';
-}
-
-export function isManager(user) {
-  const r = getRole(user);
-  return r === 'superadmin' || r === 'org_admin' || r === 'store_manager';
+export function isOwner(user) {
+  return getRole(user) === 'owner';
 }

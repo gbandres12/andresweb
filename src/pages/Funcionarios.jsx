@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
-import { UserPlus, Loader2, Shield, Trash2, Crown, Briefcase, User as UserIcon, Building2 } from 'lucide-react';
+import { UserPlus, Loader2, Shield, Trash2, Crown, Briefcase, User as UserIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -8,32 +8,18 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/use-toast';
-import { useStore } from '@/hooks/useStore';
+import { useStore } from '@/lib/StoreContext';
 import { useAuth } from '@/lib/AuthContext';
-import { ROLES, roleLabel } from '@/lib/permissions';
+import { STORE_ROLES, roleLabel } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
 import SellersManager from '@/components/SellersManager';
 
 const ROLE_BADGE = {
-  superadmin: 'bg-purple-100 text-purple-700 border-purple-200',
-  org_admin: 'bg-emerald-100 text-emerald-800 border-emerald-300 font-semibold',
-  store_manager: 'bg-indigo-100 text-indigo-700 border-indigo-200',
-  vendedor: 'bg-slate-100 text-slate-700 border-slate-200',
+  owner: 'bg-primary/10 text-primary border-primary/20',
+  manager: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+  staff: 'bg-slate-100 text-slate-600 border-slate-200',
 };
-
-const ROLE_ICON = { 
-  superadmin: Crown, 
-  org_admin: Building2, 
-  store_manager: Briefcase, 
-  vendedor: UserIcon 
-};
-
-const ROLE_DESC = {
-  superadmin: 'Super Admin da Plataforma SaaS (Visão Global)',
-  org_admin: 'Dono da Empresa / Grupo (Gestão das 5+ filiais e gerentes)',
-  store_manager: 'Gerente da Loja (Operacional + Financeiro + Estoque)',
-  vendedor: 'Vendedor / Operador (PDV, Clientes, Vendas e Trocas)',
-};
+const ROLE_ICON = { owner: Crown, manager: Briefcase, staff: UserIcon };
 
 export default function Funcionarios() {
   const { store } = useStore();
@@ -43,8 +29,7 @@ export default function Funcionarios() {
   const [loading, setLoading] = useState(true);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [email, setEmail] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [role, setRole] = useState('vendedor');
+  const [role, setRole] = useState('staff');
   const [inviting, setInviting] = useState(false);
   const [savingId, setSavingId] = useState(null);
 
@@ -53,12 +38,13 @@ export default function Funcionarios() {
     try {
       const list = await base44.entities.User.list('-created_date', 200);
       const storeId = store?.id;
+      // usuários da loja atual (mesmo store_id) + o próprio admin/dono
       setUsers((list || []).filter(u => {
         const sid = u?.data?.store_id || u?.store_id;
-        return !storeId || sid === storeId || u.role === 'org_admin' || u.role === 'superadmin';
+        return !storeId || sid === storeId || u.role === 'admin';
       }));
     } catch {
-      toast({ title: 'Erro ao carregar usuários', variant: 'destructive' });
+      toast({ title: 'Erro ao carregar funcionários', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -66,16 +52,16 @@ export default function Funcionarios() {
 
   useEffect(() => { load(); }, [load]);
 
-  const currentRole = u => u?.role || u?.store_role || 'vendedor';
+  const currentStoreRole = u => u?.data?.store_role || u?.store_role || (u?.role === 'admin' ? 'owner' : 'staff');
 
   const changeRole = async (userId, newRole) => {
-    if (userId === me?.id && newRole !== 'superadmin' && newRole !== 'org_admin') {
-      toast({ title: 'Você não pode rebaixar seu próprio acesso', variant: 'destructive' });
+    if (userId === me?.id && newRole !== 'owner') {
+      toast({ title: 'Você não pode remover seu próprio acesso de dono', variant: 'destructive' });
       return;
     }
     setSavingId(userId);
     try {
-      await base44.entities.User.update(userId, { role: newRole, store_role: newRole, store_id: store?.id });
+      await base44.entities.User.update(userId, { store_role: newRole, store_id: store?.id });
       toast({ title: 'Acesso atualizado', description: roleLabel(newRole) });
       await load();
     } catch {
@@ -85,153 +71,175 @@ export default function Funcionarios() {
     }
   };
 
-  const createAccount = async () => {
-    if (!email.trim() || !fullName.trim()) { 
-      toast({ title: 'Informe o nome e o e-mail', variant: 'destructive' }); 
-      return; 
+  const removeAccess = async (userId) => {
+    if (userId === me?.id) {
+      toast({ title: 'Você não pode remover seu próprio acesso', variant: 'destructive' });
+      return;
     }
+    setSavingId(userId);
+    try {
+      await base44.entities.User.update(userId, { store_role: 'staff', store_id: '' });
+      toast({ title: 'Acesso à loja removido' });
+      await load();
+    } catch {
+      toast({ title: 'Erro ao remover acesso', variant: 'destructive' });
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const invite = async () => {
+    if (!email.trim()) { toast({ title: 'Informe o e-mail', variant: 'destructive' }); return; }
     setInviting(true);
     try {
-      const created = await base44.entities.User.create({
-        email: email.trim().toLowerCase(),
-        full_name: fullName.trim(),
-        role: role,
-        store_role: role,
-        store_id: store?.id || '',
-        organization_id: me?.organization_id || ''
-      });
-      toast({ title: 'Usuário cadastrado!', description: `${fullName} foi criado como ${roleLabel(role)}` });
-      setEmail(''); setFullName(''); setRole('vendedor'); setInviteOpen(false);
+      await base44.users.inviteUser(email.trim(), 'user');
+      // tenta atribuir store_id + store_role imediatamente
+      try {
+        const list = await base44.entities.User.list('-created_date', 200);
+        const u = (list || []).find(x => (x.email || '').toLowerCase() === email.trim().toLowerCase());
+        if (u) await base44.entities.User.update(u.id, { store_role: role, store_id: store?.id });
+      } catch { /* usuário pode não ter aceitado ainda */ }
+      toast({ title: 'Convite enviado', description: `${email.trim()} foi convidado como ${roleLabel(role)}` });
+      setEmail(''); setRole('staff'); setInviteOpen(false);
       await load();
     } catch (e) {
-      toast({ title: 'Erro ao cadastrar usuário', description: e?.message || 'Tente novamente', variant: 'destructive' });
+      toast({ title: 'Erro ao convidar', description: e?.message || 'Verifique o e-mail', variant: 'destructive' });
     } finally {
       setInviting(false);
     }
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-full py-24"><Loader2 className="w-6 h-6 animate-spin text-emerald-600" /></div>;
+    return <div className="flex items-center justify-center h-full py-24"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="p-6 space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="font-serif text-2xl font-bold text-slate-900 dark:text-white">Usuários &amp; Níveis de Acesso</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            Gerencie SuperAdmins, Donos de Empresa, Gerentes de Loja e Vendedores.
+          <h1 className="font-serif text-2xl font-semibold text-foreground">Funcionários &amp; Acessos</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Gerencie quem acessa a loja <strong>{store?.name}</strong> e o nível de cada um.
           </p>
         </div>
-        <Button onClick={() => setInviteOpen(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium">
-          <UserPlus className="w-4 h-4 mr-2" /> Novo Usuário
+        <Button onClick={() => setInviteOpen(true)}>
+          <UserPlus className="w-4 h-4" /> Convidar funcionário
         </Button>
       </div>
 
       {/* Legenda dos papéis */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {ROLES.map(r => {
-          const Icon = ROLE_ICON[r.key] || UserIcon;
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {STORE_ROLES.map(r => {
+          const Icon = ROLE_ICON[r.key];
           return (
-            <div key={r.key} className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl p-4 flex items-start gap-3 shadow-sm">
-              <div className="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-950 flex items-center justify-center shrink-0">
-                <Icon className="w-5 h-5 text-emerald-600" />
+            <div key={r.key} className="bg-card border border-border rounded-xl p-4 flex items-start gap-3">
+              <div className="w-9 h-9 rounded-lg bg-accent flex items-center justify-center shrink-0">
+                <Icon className="w-4.5 h-4.5 text-primary" />
               </div>
               <div>
-                <p className="font-semibold text-sm text-slate-900 dark:text-white">{r.label}</p>
-                <p className="text-xs text-slate-500 mt-1 leading-tight">{ROLE_DESC[r.key]}</p>
+                <p className="font-medium text-foreground">{r.label}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{ROLE_DESC[r.key]}</p>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Lista de Usuários */}
-      <div className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl overflow-hidden shadow-sm">
+      {/* Lista */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-border">
-              <tr className="text-left text-slate-500">
-                <th className="py-3 px-4 font-semibold">Usuário</th>
-                <th className="py-3 px-4 font-semibold">E-mail</th>
-                <th className="py-3 px-4 font-semibold">Nível de Acesso</th>
-                <th className="py-3 px-4 font-semibold text-right">Alterar Nível</th>
+            <thead className="bg-muted/50">
+              <tr className="text-left text-muted-foreground">
+                <th className="py-3 px-4 font-medium">Funcionário</th>
+                <th className="py-3 px-4 font-medium">E-mail</th>
+                <th className="py-3 px-4 font-medium">Nível de acesso</th>
+                <th className="py-3 px-4 font-medium text-right">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-border">
+            <tbody>
               {users.map(u => {
-                const r = currentRole(u);
+                const r = currentStoreRole(u);
                 const Icon = ROLE_ICON[r] || UserIcon;
                 const isMe = u.id === me?.id;
                 return (
-                  <tr key={u.id} className="hover:bg-slate-50/50 transition-colors">
+                  <tr key={u.id} className="border-t border-border">
                     <td className="py-3 px-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold">
                           {(u.full_name || u.email || '?')[0]?.toUpperCase()}
                         </div>
                         <div>
-                          <p className="font-semibold text-slate-900 dark:text-white">{u.full_name || '—'}</p>
-                          {isMe && <span className="text-[10px] text-emerald-600 font-semibold">(você)</span>}
+                          <p className="font-medium text-foreground">{u.full_name || '—'}</p>
+                          {isMe && <span className="text-[10px] text-muted-foreground">(você)</span>}
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-slate-600 dark:text-slate-400">{u.email || '—'}</td>
+                    <td className="py-3 px-4 text-muted-foreground">{u.email || '—'}</td>
                     <td className="py-3 px-4">
-                      <span className={cn('inline-flex items-center gap-1.5 text-xs font-semibold rounded-full px-3 py-1 border', ROLE_BADGE[r])}>
-                        <Icon className="w-3.5 h-3.5" /> {roleLabel(r)}
+                      <span className={cn('inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-2.5 py-1 border', ROLE_BADGE[r])}>
+                        <Icon className="w-3 h-3" /> {roleLabel(r)}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-right">
-                      <Select
-                        value={r}
-                        onValueChange={v => changeRole(u.id, v)}
-                        disabled={savingId === u.id || (isMe && r === 'superadmin')}
-                      >
-                        <SelectTrigger className="h-8 w-44 text-xs ml-auto"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {ROLES.map(rr => (
-                            <SelectItem key={rr.key} value={rr.key}>
-                              {rr.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center justify-end gap-2">
+                        <Select
+                          value={r}
+                          onValueChange={v => changeRole(u.id, v)}
+                          disabled={savingId === u.id || r === 'owner' && isMe}
+                        >
+                          <SelectTrigger className="h-8 w-36 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {STORE_ROLES.map(rr => (
+                              <SelectItem key={rr.key} value={rr.key} disabled={rr.key === 'owner' && !isMe && me?.role !== 'admin'}>
+                                {rr.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          onClick={() => removeAccess(u.id)}
+                          disabled={savingId === u.id || isMe}
+                          title="Remover acesso à loja"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 );
               })}
+              {users.length === 0 && (
+                <tr><td colSpan={4} className="py-10 text-center text-muted-foreground">Nenhum funcionário vinculado</td></tr>
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
+      {/* Vendedores / Equipe de vendas */}
       <SellersManager />
 
-      {/* Dialog de criação de usuário */}
+      {/* Dialog de convite */}
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Criar Novo Usuário</DialogTitle>
+            <DialogTitle>Convidar funcionário</DialogTitle>
             <DialogDescription>
-              Cadastre usuários com os papéis de SuperAdmin, Dono de Empresa, Gerente ou Vendedor.
+              A pessoa receberá um convite por e-mail e, ao aceitar, terá acesso à loja com o nível escolhido.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+          <div className="space-y-3 py-2">
+            <Input type="email" placeholder="E-mail do funcionário" value={email} onChange={e => setEmail(e.target.value)} />
             <div>
-              <p className="text-xs font-medium text-slate-700 mb-1">Nome Completo</p>
-              <Input placeholder="Ex: João da Silva" value={fullName} onChange={e => setFullName(e.target.value)} />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-slate-700 mb-1">E-mail</p>
-              <Input type="email" placeholder="joao@empresa.com" value={email} onChange={e => setEmail(e.target.value)} />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-slate-700 mb-1">Nível de Acesso</p>
+              <p className="text-xs text-muted-foreground mb-1.5">Nível de acesso</p>
               <Select value={role} onValueChange={setRole}>
                 <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {ROLES.map(r => (
+                  {STORE_ROLES.filter(r => r.key !== 'owner').map(r => (
                     <SelectItem key={r.key} value={r.key}>{r.label} — {ROLE_DESC[r.key]}</SelectItem>
                   ))}
                 </SelectContent>
@@ -240,8 +248,8 @@ export default function Funcionarios() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancelar</Button>
-            <Button onClick={createAccount} disabled={inviting} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-              {inviting ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4 mr-2" />} Criar Usuário
+            <Button onClick={invite} disabled={inviting}>
+              {inviting ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />} Enviar convite
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -249,3 +257,9 @@ export default function Funcionarios() {
     </div>
   );
 }
+
+const ROLE_DESC = {
+  owner: 'Acesso total, gestão de lojas e funcionários',
+  manager: 'Acesso gerencial: vendas, estoque e financeiro',
+  staff: 'Acesso limitado: PDV, clientes e vendas',
+};
